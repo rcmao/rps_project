@@ -143,11 +143,12 @@ def generate_responses_batch_optimized(prompts, prompt_ids, direction_name, dire
             batch_prompts = prompts[batch_start:batch_end]
             batch_ids = prompt_ids[batch_start:batch_end]
             
-            print(f"    🔄 Processing micro-batch {batch_start//max_batch_size + 1}, prompts {batch_start}-{batch_end-1} ({len(batch_prompts)} prompts)")
+            # 🔧 简化输出，移除混乱的micro-batch显示
+            # print(f"    🔄 Processing micro-batch {batch_start//max_batch_size + 1}, prompts {batch_start}-{batch_end-1} ({len(batch_prompts)} prompts)")
             
             # 🔧 为每个response生成单独处理（因为不同的随机性）
             for resp_idx in range(num_responses):
-                print(f"      🎯 Generating response {resp_idx + 1}/{num_responses} for {len(batch_prompts)} prompts")
+                # print(f"      🎯 Generating response {resp_idx + 1}/{num_responses} for {len(batch_prompts)} prompts")
                 
                 # 批量构建输入
                 batch_messages = [build_dpa_input(prompt, v1, v2) for prompt in batch_prompts]
@@ -341,16 +342,19 @@ def process_direction_optimized(direction_name, direction_info, prompts, prompt_
     
     print(f"📊 {direction_name}: 已处理 {len(done_prompt_ids)} 个，剩余 {len(remaining_prompts)} 个")
     
-    # 🔧 分批处理
+    # 🔧 使用prompt级别的进度条，更清晰
     all_direction_results = []
     total_batches = (len(remaining_prompts) + batch_size - 1) // batch_size
     direction_start_time = time.time()
     
-    # 🕒 正确的进度条创建 - 完全修复版本
-    pbar = tqdm(total=total_batches, 
-                desc=f"📊 {direction_name}",
-                unit="batch",
-                bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} batches [{elapsed}<{remaining}, {rate_fmt}] {postfix}")
+    # 🕒 更清晰的进度条 - 显示prompt级别进度
+    total_prompts = len(remaining_prompts)
+    processed_prompts = 0
+    
+    pbar = tqdm(total=total_prompts, 
+                desc=f"🎯 {direction_name}",
+                unit="prompts",
+                bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} prompts [{elapsed}<{remaining}, {rate_fmt}] {postfix}")
     
     # 🔧 手动控制批处理循环
     for batch_idx in range(total_batches):
@@ -358,6 +362,7 @@ def process_direction_optimized(direction_name, direction_info, prompts, prompt_
         end = min(start + batch_size, len(remaining_prompts))
         batch_prompts = remaining_prompts[start:end]
         batch_ids = remaining_ids[start:end]
+        current_batch_size = len(batch_prompts)
         
         # 🔧 批量生成响应
         responses = generate_responses_batch_optimized(
@@ -366,7 +371,9 @@ def process_direction_optimized(direction_name, direction_info, prompts, prompt_
         )
         
         if not responses:
-            pbar.update(1)  # 🔧 即使失败也要更新进度条
+            # 即使失败也要更新进度
+            processed_prompts += current_batch_size
+            pbar.update(current_batch_size)
             continue
         
         # 🔧 批量评分
@@ -379,29 +386,34 @@ def process_direction_optimized(direction_name, direction_info, prompts, prompt_
         if best_responses:
             df_batch = pd.DataFrame(best_responses)
             
+            # 🔧 修复CSV保存，确保换行符不会破坏格式
             if not os.path.exists(output_file):
-                df_batch.to_csv(output_file, index=False)
+                df_batch.to_csv(output_file, index=False, quoting=1, escapechar='\\')  # 🔧 添加引号和转义
             else:
-                df_batch.to_csv(output_file, mode='a', header=False, index=False)
+                df_batch.to_csv(output_file, mode='a', header=False, index=False, quoting=1, escapechar='\\')  # 🔧 添加引号和转义
             
             all_direction_results.extend(best_responses)
-            progress_prompts = len(done_prompt_ids) + len(all_direction_results)
+        
+        # 🔧 更新进度
+        processed_prompts += current_batch_size
+        
+        # 🕒 计算时间统计
+        elapsed_time = time.time() - direction_start_time
+        if processed_prompts > 0:
+            avg_time_per_prompt = elapsed_time / processed_prompts
+            remaining_prompts_count = total_prompts - processed_prompts
+            estimated_remaining = avg_time_per_prompt * remaining_prompts_count
             
-            # 🕒 计算时间统计
-            elapsed_time = time.time() - direction_start_time
-            avg_time_per_batch = elapsed_time / (batch_idx + 1)
-            remaining_batches = total_batches - (batch_idx + 1)
-            estimated_remaining = avg_time_per_batch * remaining_batches
-            
-            # 🔧 正确更新进度条
+            # 🔧 更新进度条信息
+            total_done = len(done_prompt_ids) + processed_prompts
             pbar.set_postfix({
-                'prompts': f"{progress_prompts}/2000",
-                'avg_time': f"{avg_time_per_batch:.1f}s/batch",
-                'eta': f"{timedelta(seconds=int(estimated_remaining))}" if estimated_remaining > 0 else "0:00:00"
+                'total_done': f"{total_done}/2000",
+                'batch': f"{batch_idx+1}/{total_batches}",
+                'eta': f"{timedelta(seconds=int(estimated_remaining))}" if estimated_remaining > 0 else "done"
             })
         
-        # 🔧 手动更新进度条
-        pbar.update(1)
+        # 🔧 更新进度条
+        pbar.update(current_batch_size)
         
         # 🔧 强制垃圾回收
         del responses, scored_responses, best_responses
@@ -417,8 +429,8 @@ def process_direction_optimized(direction_name, direction_info, prompts, prompt_
 
 def main():
     """主函数"""
-    # 设置输出目录
-    result_dir = "/root/rps/data/dpo_outputs"
+    # 设置输出目录 - 使用清理后的目录
+    result_dir = "/root/rps/data/dpo_outputs_cleaned"
     os.makedirs(result_dir, exist_ok=True)
     
     # 检查已有数据

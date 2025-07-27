@@ -56,34 +56,27 @@ def load_models(device):
     cache_dir = '/root/autodl-tmp/hf_cache'
     print(f"🤖 Loading DPO model from mirror... (cache: {cache_dir})")
     try:
-        # 🔄 DPO模型使用CPU offloading
+        # 🔄 使用真正的DPO训练模型 - zephyr-7b-beta
         dpo_model = AutoModelForCausalLM.from_pretrained(
-            "stabilityai/stablelm-zephyr-3b",  # ✅ 真正的DPO模型
+            "HuggingFaceH4/zephyr-7b-beta",  # ✅ 真正的DPO模型
             torch_dtype=torch.float16,
-            load_in_8bit=True,
             device_map="auto",  # 自动分配到GPU/CPU
             trust_remote_code=True,
             cache_dir=cache_dir,  # 🔄 添加缓存目录
             resume_download=True,  # 支持断点续传
-            low_cpu_mem_usage=True,  # 🔄 减少CPU内存使用
-            offload_folder="/root/autodl-tmp/offload"  # 🔄 CPU offload目录
+            low_cpu_mem_usage=True  # 🔄 减少CPU内存使用
         )
         print("✅ DPO model loaded successfully!")
         
         dpo_tokenizer = AutoTokenizer.from_pretrained(
-            "stabilityai/stablelm-zephyr-3b",  # 🔄 替换为对应的tokenizer
+            "HuggingFaceH4/zephyr-7b-beta",  # 🔄 替换为对应的tokenizer
             trust_remote_code=True,
             cache_dir=cache_dir  # 🔄 添加缓存目录
         )
         dpo_tokenizer.padding_side = "left"
-        # 🔧 修复pad_token设置，避免与eos_token冲突
+        # 🔧 修复pad_token设置 - zephyr模型使用eos_token作为pad_token
         if dpo_tokenizer.pad_token_id is None:
-            if hasattr(dpo_tokenizer, 'unk_token') and dpo_tokenizer.unk_token is not None:
-                dpo_tokenizer.pad_token = dpo_tokenizer.unk_token
-            else:
-                # 为3B模型添加专门的pad_token
-                dpo_tokenizer.add_special_tokens({'pad_token': '<|pad|>'})
-                dpo_model.resize_token_embeddings(len(dpo_tokenizer))
+            dpo_tokenizer.pad_token = dpo_tokenizer.eos_token
         print("✅ DPO tokenizer loaded successfully!")
         
     except Exception as e:
@@ -91,26 +84,21 @@ def load_models(device):
         print("🔄 Retrying with alternative settings...")
         # 重试机制 - 🔄 确保也使用cache_dir
         dpo_model = AutoModelForCausalLM.from_pretrained(
-            "stabilityai/stablelm-zephyr-3b",  # 🔄 替换为真正的DPO模型
-            torch_dtype=torch.float32,
+            "HuggingFaceH4/zephyr-7b-beta",  # 🔄 替换为真正的DPO模型
+            torch_dtype=torch.float16,
             device_map="auto",
             trust_remote_code=True,
             cache_dir=cache_dir,  # 🔄 添加缓存目录
             resume_download=True,
             local_files_only=False,
-            low_cpu_mem_usage=True,
-            offload_folder="/root/autodl-tmp/offload"
+            low_cpu_mem_usage=True
         )
         dpo_tokenizer = AutoTokenizer.from_pretrained(
-            "stabilityai/stablelm-zephyr-3b",  # 🔄 替换为对应的tokenizer
+            "HuggingFaceH4/zephyr-7b-beta",  # 🔄 替换为对应的tokenizer
             cache_dir=cache_dir  # 🔄 添加缓存目录
         )
         if dpo_tokenizer.pad_token_id is None:
-            if hasattr(dpo_tokenizer, 'unk_token') and dpo_tokenizer.unk_token is not None:
-                dpo_tokenizer.pad_token = dpo_tokenizer.unk_token
-            else:
-                dpo_tokenizer.add_special_tokens({'pad_token': '<|pad|>'})
-                dpo_model.resize_token_embeddings(len(dpo_tokenizer))
+            dpo_tokenizer.pad_token = dpo_tokenizer.eos_token
     
     # 🔄 清理GPU缓存
     if torch.cuda.is_available():
@@ -118,16 +106,15 @@ def load_models(device):
     
     print("🏆 Loading Reward model from mirror...")
     try:
-        # 🔄 Reward模型也使用相同的内存优化策略
+        # 🔄 Reward模型放在GPU上，与DPO模型共享显存
         reward_model = AutoModelForSequenceClassification.from_pretrained(
             "Haoxiang-Wang/RewardModel-Mistral-7B-for-DPA-v1", 
             trust_remote_code=True,
             cache_dir=cache_dir,  # 🔄 添加缓存目录
             resume_download=True,
-            torch_dtype=torch.float32,  # 🔧 CPU使用float32
-            device_map="cpu",  # 🔧 强制使用CPU，释放GPU显存
-            low_cpu_mem_usage=True,
-            offload_folder="/root/autodl-tmp/offload_reward"
+            torch_dtype=torch.float16,  # 🔧 使用fp16与DPO模型一致
+            device_map="auto",  # 🔧 自动分配设备
+            low_cpu_mem_usage=True
         )
         print("✅ Reward model loaded successfully!")
         
@@ -147,15 +134,15 @@ def load_models(device):
             trust_remote_code=True,
             cache_dir=cache_dir,  # 🔄 添加缓存目录
             resume_download=True,
-            torch_dtype=torch.float32,
-            device_map="cpu",  # 🔄 强制使用CPU
+            torch_dtype=torch.float16,
+            device_map="auto",  # 🔄 自动分配设备
             low_cpu_mem_usage=True
         )
         reward_tokenizer = AutoTokenizer.from_pretrained(
             "Haoxiang-Wang/RewardModel-Mistral-7B-for-DPA-v1",
             cache_dir=cache_dir  # 🔄 添加缓存目录
         )
-        print("⚠️ Reward model loaded on CPU due to GPU memory constraints")
+        print("✅ Reward model loaded successfully")
     
     return dpo_model, dpo_tokenizer, reward_model, reward_tokenizer
 
@@ -190,22 +177,25 @@ def generate_responses_for_direction(prompt, prompt_id, direction_name, directio
         
         responses = []
         
-        # 🔧 循环生成每个响应，而不是一次性生成多个
+        # 🔧 一次性生成多个响应，更高效
+        print(f"    🔄 Generating {num_responses} responses for prompt {prompt_id}...")
+        with torch.no_grad():
+            outputs = dpo_model.generate(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                max_new_tokens=512,
+                temperature=0.7,
+                do_sample=True,
+                num_return_sequences=num_responses,  # 🔧 恢复一次性生成多个响应
+                pad_token_id=dpo_tokenizer.pad_token_id,
+                eos_token_id=dpo_tokenizer.eos_token_id,
+                top_p=0.9,  # 🔧 添加top_p参数
+                repetition_penalty=1.1  # 🔧 添加repetition_penalty参数
+            )
+        
+        # 🔧 处理多个输出
         for i in range(num_responses):
-            print(f"    🔄 Generating response {i+1}/{num_responses} for prompt {prompt_id}...")
-            with torch.no_grad():
-                outputs = dpo_model.generate(
-                    input_ids=input_ids,
-                    attention_mask=attention_mask,
-                    max_new_tokens=512,
-                    temperature=0.7,
-                    do_sample=True,
-                    # 🚫 移除num_return_sequences
-                    pad_token_id=dpo_tokenizer.pad_token_id,
-                    eos_token_id=dpo_tokenizer.eos_token_id
-                )
-            
-            generated_tokens = outputs[0][input_ids.shape[1]:]
+            generated_tokens = outputs[i][input_ids.shape[1]:]
             decoded = dpo_tokenizer.decode(generated_tokens, skip_special_tokens=True)
             responses.append({
                 "prompt_id": prompt_id,
@@ -215,7 +205,7 @@ def generate_responses_for_direction(prompt, prompt_id, direction_name, directio
                 "angle_degrees": angle,
                 "response_id": i + 1,
                 "response": decoded
-            })
+                         })
         
         return responses
     
@@ -273,7 +263,7 @@ def generate_and_evaluate_all_directions(
     reward_tokenizer, 
     device,
     output_dir,
-    batch_size=8,  # 优化批处理大小以提高效率
+    batch_size=8,  # 🔧 增大batch size提高效率
     num_responses=3
 ):
     """为所有方向生成和评估响应"""
@@ -381,7 +371,7 @@ def generate_and_evaluate_all_directions(
 
 def main():
     """主函数"""
-    # 🔄 使用已有的输出目录，其中已有完整数据
+    # 🔄 使用新的输出目录，使用7B模型
     result_dir = "/root/rps/data/dpo_outputs"
     os.makedirs(result_dir, exist_ok=True)
     
@@ -467,7 +457,7 @@ def main():
         reward_tokenizer=reward_tokenizer,
         device=device,
         output_dir=result_dir,
-        batch_size=8,  # 优化批处理大小以提高效率
+        batch_size=8,  # 🔧 增大batch size提高效率
         num_responses=3  # 进一步加速
     )
     
