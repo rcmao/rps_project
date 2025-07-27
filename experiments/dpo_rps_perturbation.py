@@ -14,9 +14,16 @@ from tqdm.auto import tqdm
 import torch
 from collections import Counter
 
-# 🇨🇳 设置国内镜像
+# 🇨🇳 设置国内镜像，解决网络访问问题
 os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
-os.environ['HUGGINGFACE_HUB_CACHE'] = '/root/.cache/huggingface'
+# 🔄 修改缓存目录到数据盘 - 使用真正的数据盘路径
+os.environ['HUGGINGFACE_HUB_CACHE'] = '/root/autodl-tmp/hf_cache'
+os.environ['HF_HOME'] = '/root/autodl-tmp/hf_cache'
+os.environ['TRANSFORMERS_CACHE'] = '/root/autodl-tmp/hf_cache'
+os.environ['HF_DATASETS_CACHE'] = '/root/autodl-tmp/hf_cache'
+
+print("🌏 已设置Hugging Face国内镜像: https://hf-mirror.com")
+print("💾 模型缓存目录: /root/autodl-tmp/hf_cache (150GB数据盘)")
 
 # 🤖 设置 OpenAI API
 os.environ["OPENAI_API_KEY"] = "sk-XGGe5y0ZvLcQVFp6XnRizs7q47gsVnAbZx0Xr2mfcVlbr99f"
@@ -89,18 +96,24 @@ def get_dpo_angle_perturbations(v_main, angle_range=(-30, 30), step=5, theta_max
 
 def load_dpo_models(device):
     """加载DPO模型和Reward模型"""
-    print("🤖 Loading DPO model...")
+    cache_dir = '/root/autodl-tmp/hf_cache'
+    print(f"🤖 Loading DPO model from mirror... (cache: {cache_dir})")
     try:
+        # 🔄 使用更快的3B模型
         dpo_model = AutoModelForCausalLM.from_pretrained(
-            "HuggingFaceH4/zephyr-7b-beta",  # 🔄 替换为真正的DPO模型
+            "stabilityai/stablelm-zephyr-3b",  # ✅ 替换为3B DPO模型
             torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
             device_map="auto" if torch.cuda.is_available() else None,
-            trust_remote_code=True
+            trust_remote_code=True,
+            cache_dir=cache_dir,  # 🔄 添加缓存目录
+            resume_download=True,
+            low_cpu_mem_usage=True
         ).to(device)
         
         dpo_tokenizer = AutoTokenizer.from_pretrained(
-            "HuggingFaceH4/zephyr-7b-beta",  # 🔄 替换为对应的tokenizer
-            trust_remote_code=True
+            "stabilityai/stablelm-zephyr-3b",  # ✅ 替换为对应的3B tokenizer
+            trust_remote_code=True,
+            cache_dir=cache_dir
         )
         dpo_tokenizer.padding_side = "left"
         if dpo_tokenizer.pad_token_id is None:
@@ -109,32 +122,77 @@ def load_dpo_models(device):
         
     except Exception as e:
         print(f"❌ DPO model loading failed: {e}")
-        return None, None, None, None
+        print("🔄 Retrying with alternative settings...")
+        dpo_model = AutoModelForCausalLM.from_pretrained(
+            "stabilityai/stablelm-zephyr-3b",
+            torch_dtype=torch.float32,
+            device_map="auto",
+            trust_remote_code=True,
+            cache_dir=cache_dir,
+            resume_download=True,
+            low_cpu_mem_usage=True
+        ).to(device)
+        
+        dpo_tokenizer = AutoTokenizer.from_pretrained(
+            "stabilityai/stablelm-zephyr-3b",
+            cache_dir=cache_dir
+        )
+        if dpo_tokenizer.pad_token_id is None:
+            dpo_tokenizer.pad_token = dpo_tokenizer.eos_token
+    
+    # 🔄 清理GPU缓存
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
     
     print("🏆 Loading Reward model...")
     try:
+        # 🔄 Reward模型也使用相同的内存优化策略
         reward_model = AutoModelForSequenceClassification.from_pretrained(
             "Haoxiang-Wang/RewardModel-Mistral-7B-for-DPA-v1",
-            trust_remote_code=True
-        ).to(device)
-        
-        reward_tokenizer = AutoTokenizer.from_pretrained(
-            "Haoxiang-Wang/RewardModel-Mistral-7B-for-DPA-v1",
-            trust_remote_code=True
+            trust_remote_code=True,
+            cache_dir=cache_dir,  # 🔄 添加缓存目录
+            resume_download=True,
+            torch_dtype=torch.float32,  # 🔧 CPU使用float32
+            device_map="cpu",  # 🔧 强制使用CPU，释放GPU显存
+            low_cpu_mem_usage=True
         )
         print("✅ Reward model loaded!")
         
+        reward_tokenizer = AutoTokenizer.from_pretrained(
+            "Haoxiang-Wang/RewardModel-Mistral-7B-for-DPA-v1",
+            trust_remote_code=True,
+            cache_dir=cache_dir  # 🔄 添加缓存目录
+        )
+        print("✅ Reward tokenizer loaded!")
+        
     except Exception as e:
-        print(f"❌ Reward model loading failed: {e}")
-        return None, None, None, None
+        print(f"❌ Error loading Reward model: {e}")
+        print("🔄 Trying alternative reward model...")
+        # 🔄 备选方案：将reward模型放在CPU上
+        reward_model = AutoModelForSequenceClassification.from_pretrained(
+            "Haoxiang-Wang/RewardModel-Mistral-7B-for-DPA-v1", 
+            trust_remote_code=True,
+            cache_dir=cache_dir,  # 🔄 添加缓存目录
+            resume_download=True,
+            torch_dtype=torch.float32,
+            device_map="cpu",  # 🔄 强制使用CPU
+            low_cpu_mem_usage=True
+        )
+        reward_tokenizer = AutoTokenizer.from_pretrained(
+            "Haoxiang-Wang/RewardModel-Mistral-7B-for-DPA-v1",
+            cache_dir=cache_dir  # 🔄 添加缓存目录
+        )
+        print("⚠️ Reward model loaded on CPU due to GPU memory constraints")
     
     return dpo_model, dpo_tokenizer, reward_model, reward_tokenizer
 
 def build_dpo_input(prompt, v1, v2):
-    """构造DPO输入（使用DPA格式保持一致）"""
+    """构造DPO输入（与论文格式保持一致）"""
     h = int(np.round(v1 * 100))
     v = int(np.round(v2 * 100))
     sys_instruction = f"You are a helpful assistant. Your response should maximize weighted rating = helpfulness*{h} + verbosity*{v}."
+    
+    # 使用与论文一致的格式
     return [{"role": "user", "content": f"{sys_instruction}\n\n{prompt}"}]
 
 def generate_dpo_responses_for_perturbation(prompt, prompt_id, v_vec, angle_deg, 
@@ -143,9 +201,16 @@ def generate_dpo_responses_for_perturbation(prompt, prompt_id, v_vec, angle_deg,
     try:
         v1, v2 = v_vec[0], v_vec[1]
         messages = build_dpo_input(prompt, v1, v2)
-        input_ids = dpo_tokenizer.apply_chat_template(
-            messages, add_generation_prompt=True, return_tensors="pt"
-        ).to(device)
+        
+        # 使用chat template，与论文格式保持一致
+        tokenized = dpo_tokenizer.apply_chat_template(
+            messages, add_generation_prompt=True, return_tensors="pt", 
+            padding=True, return_attention_mask=True
+        )
+        input_ids = tokenized['input_ids'].to(device) if isinstance(tokenized, dict) else tokenized.to(device)
+        attention_mask = tokenized.get('attention_mask', None) if isinstance(tokenized, dict) else None
+        if attention_mask is not None:
+            attention_mask = attention_mask.to(device)
         
         max_input_len = input_ids.shape[1]
         max_new_tokens = min(2048, 4096 - max_input_len)
@@ -153,6 +218,7 @@ def generate_dpo_responses_for_perturbation(prompt, prompt_id, v_vec, angle_deg,
         with torch.no_grad():
             outputs = dpo_model.generate(
                 input_ids=input_ids,
+                attention_mask=attention_mask,
                 max_new_tokens=max_new_tokens,
                 temperature=0.7,
                 do_sample=True,
@@ -614,7 +680,7 @@ def main():
     device = setup_environment()
     
     # 🔄 修复路径，指向正确的baseline结果目录
-    dpo_outputs_dir = "/root/rps/data/dpo_baseline_outputs"  # 修复路径
+    dpo_outputs_dir = "/root/rps/data/dpo_outputs"  # 修复路径，与baseline脚本一致
     rps_output_dir = "/root/rps/data/dpo_rps_results"
     comparison_output_dir = "/root/rps/data/dpo_rps_comparisons"
     

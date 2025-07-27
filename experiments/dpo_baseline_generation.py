@@ -14,9 +14,14 @@ import random
 
 # 🇨🇳 设置国内镜像，解决网络访问问题
 os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
-os.environ['HUGGINGFACE_HUB_CACHE'] = '/root/.cache/huggingface'
+# 🔄 修改缓存目录到数据盘 - 使用真正的数据盘路径
+os.environ['HUGGINGFACE_HUB_CACHE'] = '/root/autodl-tmp/hf_cache'
+os.environ['HF_HOME'] = '/root/autodl-tmp/hf_cache'
+os.environ['TRANSFORMERS_CACHE'] = '/root/autodl-tmp/hf_cache'
+os.environ['HF_DATASETS_CACHE'] = '/root/autodl-tmp/hf_cache'
 
 print("🌏 已设置Hugging Face国内镜像: https://hf-mirror.com")
+print("💾 模型缓存目录: /root/autodl-tmp/hf_cache (150GB数据盘)")
 
 # 定义v3-v10的方向向量（基于论文Table）
 PREFERENCE_DIRECTIONS = {
@@ -48,71 +53,109 @@ def setup_environment():
 
 def load_models(device):
     """加载DPO模型和Reward模型"""
-    print("🤖 Loading DPO model from mirror...")
+    cache_dir = '/root/autodl-tmp/hf_cache'
+    print(f"🤖 Loading DPO model from mirror... (cache: {cache_dir})")
     try:
-        # 🔄 替换为真正的DPO模型
+        # 🔄 DPO模型使用CPU offloading
         dpo_model = AutoModelForCausalLM.from_pretrained(
-            "HuggingFaceH4/zephyr-7b-beta",  # ✅ 真正的DPO模型
-            torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
-            device_map="auto" if torch.cuda.is_available() else None,
+            "stabilityai/stablelm-zephyr-3b",  # ✅ 真正的DPO模型
+            torch_dtype=torch.float16,
+            load_in_8bit=True,
+            device_map="auto",  # 自动分配到GPU/CPU
             trust_remote_code=True,
-            resume_download=True  # 支持断点续传
-        ).to(device)
+            cache_dir=cache_dir,  # 🔄 添加缓存目录
+            resume_download=True,  # 支持断点续传
+            low_cpu_mem_usage=True,  # 🔄 减少CPU内存使用
+            offload_folder="/root/autodl-tmp/offload"  # 🔄 CPU offload目录
+        )
         print("✅ DPO model loaded successfully!")
         
         dpo_tokenizer = AutoTokenizer.from_pretrained(
-            "HuggingFaceH4/zephyr-7b-beta",  # 🔄 替换为对应的tokenizer
-            trust_remote_code=True
+            "stabilityai/stablelm-zephyr-3b",  # 🔄 替换为对应的tokenizer
+            trust_remote_code=True,
+            cache_dir=cache_dir  # 🔄 添加缓存目录
         )
         dpo_tokenizer.padding_side = "left"
+        # 🔧 修复pad_token设置，避免与eos_token冲突
         if dpo_tokenizer.pad_token_id is None:
-            dpo_tokenizer.pad_token = dpo_tokenizer.eos_token
+            if hasattr(dpo_tokenizer, 'unk_token') and dpo_tokenizer.unk_token is not None:
+                dpo_tokenizer.pad_token = dpo_tokenizer.unk_token
+            else:
+                # 为3B模型添加专门的pad_token
+                dpo_tokenizer.add_special_tokens({'pad_token': '<|pad|>'})
+                dpo_model.resize_token_embeddings(len(dpo_tokenizer))
         print("✅ DPO tokenizer loaded successfully!")
         
     except Exception as e:
         print(f"❌ Error loading DPO model: {e}")
         print("🔄 Retrying with alternative settings...")
-        # 重试机制
+        # 重试机制 - 🔄 确保也使用cache_dir
         dpo_model = AutoModelForCausalLM.from_pretrained(
-            "HuggingFaceH4/zephyr-7b-beta",  # 🔄 替换为真正的DPO模型
+            "stabilityai/stablelm-zephyr-3b",  # 🔄 替换为真正的DPO模型
             torch_dtype=torch.float32,
-            device_map=None,
+            device_map="auto",
             trust_remote_code=True,
+            cache_dir=cache_dir,  # 🔄 添加缓存目录
             resume_download=True,
-            local_files_only=False
-        ).to(device)
-        dpo_tokenizer = AutoTokenizer.from_pretrained("HuggingFaceH4/zephyr-7b-beta")  # 🔄 替换为对应的tokenizer
+            local_files_only=False,
+            low_cpu_mem_usage=True,
+            offload_folder="/root/autodl-tmp/offload"
+        )
+        dpo_tokenizer = AutoTokenizer.from_pretrained(
+            "stabilityai/stablelm-zephyr-3b",  # 🔄 替换为对应的tokenizer
+            cache_dir=cache_dir  # 🔄 添加缓存目录
+        )
         if dpo_tokenizer.pad_token_id is None:
-            dpo_tokenizer.pad_token = dpo_tokenizer.eos_token
+            if hasattr(dpo_tokenizer, 'unk_token') and dpo_tokenizer.unk_token is not None:
+                dpo_tokenizer.pad_token = dpo_tokenizer.unk_token
+            else:
+                dpo_tokenizer.add_special_tokens({'pad_token': '<|pad|>'})
+                dpo_model.resize_token_embeddings(len(dpo_tokenizer))
+    
+    # 🔄 清理GPU缓存
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
     
     print("🏆 Loading Reward model from mirror...")
     try:
+        # 🔄 Reward模型也使用相同的内存优化策略
         reward_model = AutoModelForSequenceClassification.from_pretrained(
             "Haoxiang-Wang/RewardModel-Mistral-7B-for-DPA-v1", 
             trust_remote_code=True,
-            resume_download=True
-        ).to(device)
+            cache_dir=cache_dir,  # 🔄 添加缓存目录
+            resume_download=True,
+            torch_dtype=torch.float32,  # 🔧 CPU使用float32
+            device_map="cpu",  # 🔧 强制使用CPU，释放GPU显存
+            low_cpu_mem_usage=True,
+            offload_folder="/root/autodl-tmp/offload_reward"
+        )
         print("✅ Reward model loaded successfully!")
         
         reward_tokenizer = AutoTokenizer.from_pretrained(
             "Haoxiang-Wang/RewardModel-Mistral-7B-for-DPA-v1",
-            trust_remote_code=True
+            trust_remote_code=True,
+            cache_dir=cache_dir  # 🔄 添加缓存目录
         )
         print("✅ Reward tokenizer loaded successfully!")
         
     except Exception as e:
         print(f"❌ Error loading Reward model: {e}")
         print("🔄 Trying alternative reward model...")
-        # 可以使用备选模型
+        # 🔄 备选方案：将reward模型放在CPU上
         reward_model = AutoModelForSequenceClassification.from_pretrained(
             "Haoxiang-Wang/RewardModel-Mistral-7B-for-DPA-v1", 
             trust_remote_code=True,
+            cache_dir=cache_dir,  # 🔄 添加缓存目录
             resume_download=True,
-            torch_dtype=torch.float32
-        ).to(device)
-        reward_tokenizer = AutoTokenizer.from_pretrained(
-            "Haoxiang-Wang/RewardModel-Mistral-7B-for-DPA-v1"
+            torch_dtype=torch.float32,
+            device_map="cpu",  # 🔄 强制使用CPU
+            low_cpu_mem_usage=True
         )
+        reward_tokenizer = AutoTokenizer.from_pretrained(
+            "Haoxiang-Wang/RewardModel-Mistral-7B-for-DPA-v1",
+            cache_dir=cache_dir  # 🔄 添加缓存目录
+        )
+        print("⚠️ Reward model loaded on CPU due to GPU memory constraints")
     
     return dpo_model, dpo_tokenizer, reward_model, reward_tokenizer
 
@@ -125,36 +168,44 @@ def build_dpa_input(prompt, v1, v2):
     
     return [{"role": "user", "content": f"{sys_instruction}\n\n{prompt}"}]
 
+# 不要使用num_return_sequences，改为循环生成
 def generate_responses_for_direction(prompt, prompt_id, direction_name, direction_info, 
                                    dpo_model, dpo_tokenizer, device, num_responses=3):
-    """为单个prompt在特定方向上生成多个响应"""
     try:
         v1, v2 = direction_info["vector"]
         angle = direction_info["angle"]
         
         messages = build_dpa_input(prompt, v1, v2)
-        input_ids = dpo_tokenizer.apply_chat_template(
-            messages, add_generation_prompt=True, return_tensors="pt"
-        ).to(device)
-        
-        max_input_len = input_ids.shape[1]
-        max_new_tokens = min(2048, 4096 - max_input_len)
-        
-        with torch.no_grad():
-            outputs = dpo_model.generate(
-                input_ids=input_ids,
-                max_new_tokens=max_new_tokens,
-                temperature=0.7,
-                do_sample=True,
-                num_return_sequences=num_responses,
-                pad_token_id=dpo_tokenizer.eos_token_id,
-                top_p=0.9,  # 🔄 添加top_p参数
-                repetition_penalty=1.1  # 🔄 添加repetition_penalty参数
-            )
+        tokenized = dpo_tokenizer.apply_chat_template(
+            messages, add_generation_prompt=True, return_tensors="pt",
+            padding=True, return_attention_mask=True, truncation=True
+        )
+        input_ids = tokenized['input_ids'].to(device) if isinstance(tokenized, dict) else tokenized.to(device)
+        attention_mask = tokenized.get('attention_mask', None) if isinstance(tokenized, dict) else None
+        if attention_mask is not None:
+            attention_mask = attention_mask.to(device)
+        else:
+            # 如果没有attention_mask，创建一个全1的mask
+            attention_mask = torch.ones_like(input_ids).to(device)
         
         responses = []
+        
+        # 🔧 循环生成每个响应，而不是一次性生成多个
         for i in range(num_responses):
-            generated_tokens = outputs[i][input_ids.shape[1]:]
+            print(f"    🔄 Generating response {i+1}/{num_responses} for prompt {prompt_id}...")
+            with torch.no_grad():
+                outputs = dpo_model.generate(
+                    input_ids=input_ids,
+                    attention_mask=attention_mask,
+                    max_new_tokens=512,
+                    temperature=0.7,
+                    do_sample=True,
+                    # 🚫 移除num_return_sequences
+                    pad_token_id=dpo_tokenizer.pad_token_id,
+                    eos_token_id=dpo_tokenizer.eos_token_id
+                )
+            
+            generated_tokens = outputs[0][input_ids.shape[1]:]
             decoded = dpo_tokenizer.decode(generated_tokens, skip_special_tokens=True)
             responses.append({
                 "prompt_id": prompt_id,
@@ -180,7 +231,11 @@ def score_response_dpa(prompt, response, reward_model, reward_tokenizer, device,
         inputs = reward_tokenizer(
             template.format(prompt=prompt, response=response), 
             return_tensors="pt"
-        ).to(device)
+        )
+        
+        # 🔄 检查reward模型的设备并相应地移动输入
+        model_device = next(reward_model.parameters()).device
+        inputs = inputs.to(model_device)
         
         with torch.no_grad():
             logits = reward_model(**inputs).logits.squeeze().cpu().numpy()
@@ -218,7 +273,7 @@ def generate_and_evaluate_all_directions(
     reward_tokenizer, 
     device,
     output_dir,
-    batch_size=8,  # 🔄 从4改为8，速度提升2倍
+    batch_size=8,  # 优化批处理大小以提高效率
     num_responses=3
 ):
     """为所有方向生成和评估响应"""
@@ -326,9 +381,35 @@ def generate_and_evaluate_all_directions(
 
 def main():
     """主函数"""
-    # 🔄 修改输出目录到/data文件夹
-    result_dir = "/root/rps/data/dpo_baseline_outputs"
+    # 🔄 使用已有的输出目录，其中已有完整数据
+    result_dir = "/root/rps/data/dpo_outputs"
     os.makedirs(result_dir, exist_ok=True)
+    
+    # 🔄 检查已有数据
+    existing_files = []
+    for direction_name in PREFERENCE_DIRECTIONS.keys():
+        output_file = os.path.join(result_dir, f"dpo_responses_{direction_name}.csv")
+        if os.path.exists(output_file):
+            try:
+                df = pd.read_csv(output_file)
+                existing_files.append((direction_name, len(df)))
+                print(f"📁 Found existing data for {direction_name}: {len(df)} responses")
+            except Exception as e:
+                print(f"⚠️ Error reading {direction_name}: {e}")
+    
+    if existing_files:
+        print(f"\n✅ Found complete baseline data in {result_dir}")
+        print(f"📊 Summary:")
+        total_responses = 0
+        for direction_name, count in existing_files:
+            print(f"  {direction_name}: {count} responses")
+            total_responses += count
+        print(f"  Total: {total_responses} responses across {len(existing_files)} directions")
+        
+        user_input = input("\n🤔 Data already exists. Continue anyway? (y/N): ").strip().lower()
+        if user_input != 'y':
+            print("🛑 Stopping execution. Use existing data for analysis.")
+            return
     
     # 设置环境
     device = setup_environment()
@@ -342,10 +423,31 @@ def main():
         print(f"✅ Loaded {len(prompts)} prompts successfully!")
     except Exception as e:
         print(f"❌ Error loading dataset: {e}")
-        print("🔄 Retrying dataset loading...")
-        ds = load_dataset("HuggingFaceH4/ultrafeedback_binarized", split="test_prefs", trust_remote_code=True)
-        prompts = ds["prompt"][:2000]  # 🔄 修改为2000个prompts
-        prompt_ids = list(range(len(prompts)))
+        print("🔄 Retrying dataset loading with different methods...")
+        
+        # 尝试多种方法
+        retry_methods = [
+            # 方法1：不使用trust_remote_code
+            lambda: load_dataset("HuggingFaceH4/ultrafeedback_binarized", split="test_prefs"),
+            # 方法2：尝试使用cache
+            lambda: load_dataset("HuggingFaceH4/ultrafeedback_binarized", split="test_prefs", cache_dir="/root/.cache/huggingface"),
+            # 方法3：强制重新下载
+            lambda: load_dataset("HuggingFaceH4/ultrafeedback_binarized", split="test_prefs", download_mode="force_redownload"),
+        ]
+        
+        for i, method in enumerate(retry_methods, 1):
+            try:
+                print(f"🔄 Trying method {i}...")
+                ds = method()
+                prompts = ds["prompt"][:2000]
+                prompt_ids = list(range(len(prompts)))
+                print(f"✅ Method {i} succeeded! Loaded {len(prompts)} prompts")
+                break
+            except Exception as retry_error:
+                print(f"❌ Method {i} failed: {retry_error}")
+                if i == len(retry_methods):
+                    print("🚨 All retry methods failed. Please check your network connection.")
+                    raise retry_error
     
     # 加载模型
     dpo_model, dpo_tokenizer, reward_model, reward_tokenizer = load_models(device)
@@ -365,8 +467,8 @@ def main():
         reward_tokenizer=reward_tokenizer,
         device=device,
         output_dir=result_dir,
-        batch_size=8,  # 🔄 从4改为8，速度提升2倍
-        num_responses=3
+        batch_size=8,  # 优化批处理大小以提高效率
+        num_responses=3  # 进一步加速
     )
     
     print(f"\n✅ All done! Results saved to {result_dir}")
