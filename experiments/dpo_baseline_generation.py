@@ -20,13 +20,13 @@ print("🌏 已设置Hugging Face国内镜像: https://hf-mirror.com")
 
 # 定义v3-v10的方向向量（基于论文Table）
 PREFERENCE_DIRECTIONS = {
-    "v3": {"vector": (0.9848, 0.1736), "angle": 10},
-    "v4": {"vector": (0.9659, 0.2588), "angle": 15},
-    "v5": {"vector": (0.9397, 0.3420), "angle": 20},
-    "v6": {"vector": (0.9063, 0.4226), "angle": 25},
-    "v7": {"vector": (0.8660, 0.5000), "angle": 30},
-    "v8": {"vector": (0.8192, 0.5736), "angle": 35},
-    "v9": {"vector": (0.7660, 0.6428), "angle": 40},
+    # "v3": {"vector": (0.9848, 0.1736), "angle": 10},
+    # "v4": {"vector": (0.9659, 0.2588), "angle": 15},
+    # "v5": {"vector": (0.9397, 0.3420), "angle": 20},
+    # "v6": {"vector": (0.9063, 0.4226), "angle": 25},
+    # "v7": {"vector": (0.8660, 0.5000), "angle": 30},
+    # "v8": {"vector": (0.8192, 0.5736), "angle": 35},
+    # "v9": {"vector": (0.7660, 0.6428), "angle": 40},
     "v10": {"vector": (0.7071, 0.7071), "angle": 45},
 }
 
@@ -50,14 +50,15 @@ def load_models(device):
     """加载DPO模型和Reward模型"""
     print("🤖 Loading DPO model from mirror...")
     try:
-        # 🔄 替换为真正的DPO模型
+        # 🔄 优化L40S显存使用
         dpo_model = AutoModelForCausalLM.from_pretrained(
             "HuggingFaceH4/zephyr-7b-beta",  # ✅ 真正的DPO模型
-            torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
-            device_map="auto" if torch.cuda.is_available() else None,
+            torch_dtype=torch.float16,  # 🔄 使用fp16节省显存
+            device_map="auto",  # 🔄 自动设备映射
             trust_remote_code=True,
-            resume_download=True  # 支持断点续传
-        ).to(device)
+            resume_download=True,  # 支持断点续传
+            low_cpu_mem_usage=True  # 🔄 低CPU内存使用
+        )
         print("✅ DPO model loaded successfully!")
         
         dpo_tokenizer = AutoTokenizer.from_pretrained(
@@ -75,11 +76,12 @@ def load_models(device):
         # 重试机制
         dpo_model = AutoModelForCausalLM.from_pretrained(
             "HuggingFaceH4/zephyr-7b-beta",  # 🔄 替换为真正的DPO模型
-            torch_dtype=torch.float32,
+            torch_dtype=torch.float16,
             device_map=None,
             trust_remote_code=True,
             resume_download=True,
-            local_files_only=False
+            local_files_only=False,
+            low_cpu_mem_usage=True
         ).to(device)
         dpo_tokenizer = AutoTokenizer.from_pretrained("HuggingFaceH4/zephyr-7b-beta")  # 🔄 替换为对应的tokenizer
         if dpo_tokenizer.pad_token_id is None:
@@ -90,8 +92,10 @@ def load_models(device):
         reward_model = AutoModelForSequenceClassification.from_pretrained(
             "Haoxiang-Wang/RewardModel-Mistral-7B-for-DPA-v1", 
             trust_remote_code=True,
-            resume_download=True
-        ).to(device)
+            resume_download=True,
+            torch_dtype=torch.float16,  # 🔄 使用fp16
+            low_cpu_mem_usage=True  # 🔄 低CPU内存使用
+        )
         print("✅ Reward model loaded successfully!")
         
         reward_tokenizer = AutoTokenizer.from_pretrained(
@@ -108,7 +112,8 @@ def load_models(device):
             "Haoxiang-Wang/RewardModel-Mistral-7B-for-DPA-v1", 
             trust_remote_code=True,
             resume_download=True,
-            torch_dtype=torch.float32
+            torch_dtype=torch.float16,
+            low_cpu_mem_usage=True
         ).to(device)
         reward_tokenizer = AutoTokenizer.from_pretrained(
             "Haoxiang-Wang/RewardModel-Mistral-7B-for-DPA-v1"
@@ -218,7 +223,7 @@ def generate_and_evaluate_all_directions(
     reward_tokenizer, 
     device,
     output_dir,
-    batch_size=8,  # 🔄 从4改为8，速度提升2倍
+    batch_size=16,  # 🔄 从8改为16，L40S显存充足
     num_responses=3
 ):
     """为所有方向生成和评估响应"""
@@ -365,7 +370,7 @@ def main():
         reward_tokenizer=reward_tokenizer,
         device=device,
         output_dir=result_dir,
-        batch_size=8,  # 🔄 从4改为8，速度提升2倍
+        batch_size=16,  # 🔄 从8改为16，L40S显存充足
         num_responses=3
     )
     
