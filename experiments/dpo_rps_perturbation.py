@@ -51,7 +51,7 @@ def setup_environment():
     
     return device
 
-def get_dpo_angle_perturbations(v_main, angle_range=(-30, 30), step=5, theta_max=25, top_k=5):
+def get_dpo_angle_perturbations(v_main, angle_range=(-30, 30), step=5, theta_max=30, top_k=5):
     """为DPO方向生成角度扰动（参考angle_based.py）"""
     def angle_between(v1, v2):
         cos_angle = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
@@ -236,7 +236,7 @@ def run_dpo_rps_for_direction(direction_name, direction_info, prompts, prompt_id
         v_main=main_v,
         angle_range=(-30, 30),
         step=5,
-        theta_max=25,
+        theta_max=30,
         top_k=5
     )
     
