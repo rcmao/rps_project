@@ -613,8 +613,8 @@ def main():
     # 设置环境
     device = setup_environment()
     
-    # 🔄 修复路径，指向正确的baseline结果目录
-    dpo_outputs_dir = "/root/rps/data/dpo_baseline_outputs"  # 修复路径
+    # 🔄 修复路径，指向Google Drive的baseline结果目录
+    dpo_outputs_dir = "/content/drive/MyDrive/dpo_baseline_outputs"  # 修改为Google Drive路径
     rps_output_dir = "/root/rps/data/dpo_rps_results"
     comparison_output_dir = "/root/rps/data/dpo_rps_comparisons"
     
