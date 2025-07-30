@@ -1,4 +1,4 @@
-# steerlm_nemo_generation.py - 使用Hugging Face Transformers加载和测试SteerLM格式
+# steerlm_nemo_fixed.py - 使用NeMo框架正确加载SteerLM模型
 import os
 import numpy as np
 import pandas as pd
@@ -52,7 +52,7 @@ os.environ['HF_HUB_DOWNLOAD_TIMEOUT'] = '300'
 os.environ['TRANSFORMERS_CACHE'] = '/root/.cache/huggingface'
 
 # 默认使用国内镜像
-current_mirror = setup_mirror("hf_mirror")  # 改为 "hf_mirror"
+current_mirror = setup_mirror("hf_mirror")
 
 print("🌐 Network configuration:")
 print(f"Current Mirror: {current_mirror}")
@@ -61,14 +61,22 @@ print(f"Cache dir: {os.environ.get('TRANSFORMERS_CACHE', 'Default')}")
 
 # =============================================================================
 
-# 导入Transformers相关模块
+# 导入NeMo相关模块
 try:
-    from transformers import AutoTokenizer, AutoModelForCausalLM, GenerationConfig
-    import transformers
-    print("✅ Transformers toolkit imported successfully!")
+    from nemo.collections.nlp.models.language_modeling.megatron_gpt_model import MegatronGPTModel
+    from nemo.collections.nlp.parts.utils_funcs import torch_dtype_from_precision
+    from nemo.core.config import hydra_runner
+    from omegaconf import DictConfig
+    import nemo
+    # 使用正确的PyTorch Lightning导入
+    try:
+        from lightning.pytorch import Trainer
+    except ImportError:
+        from pytorch_lightning import Trainer
+    print("✅ NeMo toolkit imported successfully!")
 except ImportError as e:
-    print(f"❌ Transformers import failed: {e}")
-    print("💡 请确保已正确安装 transformers: pip install transformers")
+    print(f"❌ NeMo import failed: {e}")
+    print("💡 请先运行: bash install_nemo_steerlm.sh")
     exit(1)
 
 # 定义方向向量
@@ -83,42 +91,59 @@ PREFERENCE_DIRECTIONS = {
     "v10": {"vector": (0.7071, 0.7071), "angle": 45},
 }
 
-def load_test_model(model_name="microsoft/DialoGPT-medium", device="cuda"):
-    """加载测试用的Transformers模型"""
-    print(f"🤖 Loading test model: {model_name}")
+def download_nemo_model():
+    """下载.nemo格式的SteerLM模型"""
+    from huggingface_hub import hf_hub_download
+    
+    print("📥 Downloading Nemotron-3-8B-SteerLM (.nemo format)...")
     
     try:
-        # 加载tokenizer
-        print("📝 Loading tokenizer...")
-        tokenizer = AutoTokenizer.from_pretrained(
-            model_name,
-            trust_remote_code=True,
-            cache_dir="/root/.cache/huggingface"
+        model_path = hf_hub_download(
+            repo_id="nvidia/nemotron-3-8b-chat-4k-steerlm",
+            filename="Nemotron-3-8B-Chat-4k-SteerLM.nemo",
+            cache_dir="/root/.cache/huggingface",
+            resume_download=True
+        )
+        print(f"✅ Model downloaded to: {model_path}")
+        return model_path
+    except Exception as e:
+        print(f"❌ Download failed: {e}")
+        print("💡 确保已登录HuggingFace并接受模型许可证")
+        return None
+
+def load_nemo_steerlm_model(nemo_path, device="cuda"):
+    """使用NeMo加载SteerLM模型"""
+    print(f"🤖 Loading SteerLM model from: {nemo_path}")
+    
+    try:
+        # 创建PTL trainer
+        trainer = Trainer(
+            accelerator='gpu' if torch.cuda.is_available() else 'cpu',
+            devices=1,
+            precision=16 if torch.cuda.is_available() else 32,
+            logger=False,
+            enable_checkpointing=False,
+            enable_progress_bar=False,
+            enable_model_summary=False,
         )
         
-        # 设置pad_token
-        if tokenizer.pad_token is None:
-            tokenizer.pad_token = tokenizer.eos_token
-        
-        # 加载模型
-        print("🧠 Loading model...")
-        model = AutoModelForCausalLM.from_pretrained(
-            model_name,
-            torch_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
-            device_map="auto" if torch.cuda.is_available() else None,
-            trust_remote_code=True,
-            cache_dir="/root/.cache/huggingface"
+        # 使用NeMo加载模型
+        model = MegatronGPTModel.restore_from(
+            restore_path=nemo_path,
+            trainer=trainer,
+            map_location=device
         )
         
         # 设置为评估模式
         model.eval()
+        model = model.to(device)
         
-        print("✅ Test model loaded successfully!")
-        return model, tokenizer
+        print("✅ NeMo SteerLM model loaded successfully!")
+        return model
         
     except Exception as e:
-        print(f"❌ Failed to load test model: {e}")
-        return None, None
+        print(f"❌ Failed to load model: {e}")
+        return None
 
 def dpa_vector_to_steerlm_attributes(v1, v2):
     """映射DPA向量到SteerLM属性格式 - 严格按照论文规范"""
@@ -165,67 +190,35 @@ A chat between a curious user and an artificial intelligence assistant. The assi
     
     return steerlm_prompt, attr_string
 
-def build_simple_prompt(prompt, v1, v2):
-    """构建简化的prompt格式用于测试"""
-    helpfulness = max(0, min(4, round(v1 * 4)))
-    verbosity = max(0, min(4, round(v2 * 4)))
-    
-    # 简化的prompt格式
-    simple_prompt = f"""System: You are a helpful AI assistant. Please respond with helpfulness level {helpfulness}/4 and verbosity level {verbosity}/4.
-
-User: {prompt}
-
-Assistant:"""
-    
-    return simple_prompt
-
-def generate_with_transformers_model(model, tokenizer, prompt_text, max_tokens=512, temperature=0.7):
-    """使用Transformers模型生成文本"""
+def generate_with_nemo_model(model, prompt_text, max_tokens=512, temperature=0.7):
+    """使用NeMo模型生成文本"""
     try:
-        # 编码输入
-        inputs = tokenizer(prompt_text, return_tensors="pt", truncation=True, max_length=4096)
+        # NeMo生成参数
+        length_params = {
+            "max_length": max_tokens,
+            "min_length": 1,
+        }
         
-        # 移动到正确的设备
-        if torch.cuda.is_available():
-            inputs = {k: v.cuda() for k, v in inputs.items()}
-        
-        # 生成配置
-        generation_config = GenerationConfig(
-            max_new_tokens=max_tokens,
-            min_new_tokens=1,
-            temperature=temperature,
-            top_k=50,
-            top_p=0.9,
-            repetition_penalty=1.2,
-            do_sample=temperature > 0.0,
-            pad_token_id=tokenizer.eos_token_id,
-            eos_token_id=tokenizer.eos_token_id,
-        )
+        sampling_params = {
+            "use_greedy": temperature == 0.0,
+            "temperature": temperature,
+            "top_k": 50,
+            "top_p": 0.9,
+            "repetition_penalty": 1.2,
+        }
         
         # 生成响应
-        with torch.no_grad():
-            outputs = model.generate(
-                **inputs,
-                generation_config=generation_config,
-                return_dict_in_generate=True,
-                output_scores=False,
-            )
+        response = model.generate([prompt_text], length_params, sampling_params)
         
-        # 解码输出
-        generated_text = tokenizer.decode(outputs.sequences[0], skip_special_tokens=False)
-        
-        # 移除输入部分，只保留生成的内容
-        if generated_text.startswith(prompt_text):
-            response = generated_text[len(prompt_text):].strip()
+        if response and len(response) > 0:
+            return response[0]
         else:
-            response = generated_text
-        
-        return response
+            return "ERROR: Empty response from model"
             
     except Exception as e:
         return f"ERROR: {str(e)}"
 
-def generate_responses_for_direction(prompts, v1, v2, model, tokenizer, direction_name):
+def generate_responses_for_direction(prompts, v1, v2, model, direction_name):
     """为指定方向生成响应"""
     print(f"🎯 Generating responses for {direction_name} (v1={v1:.4f}, v2={v2:.4f})")
     
@@ -237,17 +230,22 @@ def generate_responses_for_direction(prompts, v1, v2, model, tokenizer, directio
         # 为每个prompt生成3个响应
         for sample_id in range(3):
             try:
-                # 使用简化prompt格式
-                simple_prompt = build_simple_prompt(prompt, v1, v2)
+                steerlm_prompt, attr_string = build_steerlm_prompt(prompt, v1, v2)
                 
-                # 使用Transformers生成响应
-                response = generate_with_transformers_model(
+                # 使用NeMo生成响应
+                response = generate_with_nemo_model(
                     model=model,
-                    tokenizer=tokenizer,
-                    prompt_text=simple_prompt,
+                    prompt_text=steerlm_prompt,
                     max_tokens=512,
                     temperature=0.7
                 )
+                
+                # 清理输出（移除prompt部分）
+                if response.startswith(steerlm_prompt):
+                    response = response[len(steerlm_prompt):].strip()
+                
+                # 移除SteerLM特殊标记
+                response = response.split("<extra_id_1>")[0].strip()
                 
                 prompt_results.append({
                     "prompt_id": i,
@@ -257,8 +255,8 @@ def generate_responses_for_direction(prompts, v1, v2, model, tokenizer, directio
                     "direction": direction_name,
                     "v1": v1,
                     "v2": v2,
-                    "attributes": f"helpfulness:{v1:.2f},verbosity:{v2:.2f}",
-                    "model_name": "dialo-gpt-medium-test"
+                    "attributes": attr_string,
+                    "model_name": "nemotron-3-8b-chat-4k-steerlm"
                 })
                 
             except Exception as e:
@@ -272,7 +270,7 @@ def generate_responses_for_direction(prompts, v1, v2, model, tokenizer, directio
                     "v1": v1,
                     "v2": v2,
                     "attributes": "ERROR",
-                    "model_name": "dialo-gpt-medium-test"
+                    "model_name": "nemotron-3-8b-chat-4k-steerlm"
                 })
         
         results.extend(prompt_results)
@@ -280,8 +278,8 @@ def generate_responses_for_direction(prompts, v1, v2, model, tokenizer, directio
     return results
 
 def main():
-    """主函数 - 使用Transformers测试SteerLM格式"""
-    print("🚀 Starting Transformers SteerLM format test!")
+    """主函数 - 使用NeMo加载和测试SteerLM模型"""
+    print("🚀 Starting NeMo SteerLM experiment!")
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
@@ -292,10 +290,15 @@ def main():
     else:
         print("💻 Using CPU")
     
-    # 加载测试模型
-    model, tokenizer = load_test_model()
-    if model is None or tokenizer is None:
-        print("❌ Failed to load test model")
+    # 下载.nemo模型
+    nemo_path = download_nemo_model()
+    if nemo_path is None:
+        return
+    
+    # 加载NeMo模型
+    print(f"🤖 Loading model from: {nemo_path}")
+    model = load_nemo_steerlm_model(nemo_path, device)
+    if model is None:
         return
     
     # 加载测试数据
@@ -310,33 +313,31 @@ def main():
     print(f"\n🧪 Testing with prompt: {test_prompt[:100]}...")
     print(f"🎯 DPA vector: ({v1}, {v2})")
     
-    # 测试SteerLM格式
     steerlm_prompt, attr_string = build_steerlm_prompt(test_prompt, v1, v2)
+    
     print(f"\n📝 Generated SteerLM prompt:")
     print(f"```\n{steerlm_prompt}\n```")
     
-    # 测试简化格式
-    simple_prompt = build_simple_prompt(test_prompt, v1, v2)
-    print(f"\n📝 Generated simple prompt:")
-    print(f"```\n{simple_prompt}\n```")
-    
     # 生成响应
     print("⚡ Generating response...")
-    response = generate_with_transformers_model(
+    response = generate_with_nemo_model(
         model=model,
-        tokenizer=tokenizer,
-        prompt_text=simple_prompt,
+        prompt_text=steerlm_prompt,
         max_tokens=512,
         temperature=0.7
     )
     
-    print(f"\n🎯 Generated Response:")
+    # 清理输出
+    if response.startswith(steerlm_prompt):
+        response = response[len(steerlm_prompt):].strip()
+    response = response.split("<extra_id_1>")[0].strip()
+    
+    print(f"\n🎯 SteerLM Response:")
     print(f"```\n{response}\n```")
     
-    print(f"\n✅ Transformers SteerLM format test successful!")
+    print(f"\n✅ NeMo SteerLM test successful!")
     print(f"📊 Attribute string used: {attr_string}")
-    print(f"🔧 Model: microsoft/DialoGPT-medium (test model)")
-    print(f"💡 Note: This is a test implementation. For real SteerLM models, use NeMo framework.")
+    print(f"🔧 Model: nvidia/nemotron-3-8b-chat-4k-steerlm (.nemo format)")
 
 if __name__ == "__main__":
     main() 
