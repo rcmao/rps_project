@@ -132,7 +132,7 @@ def run_dpo_generation(
             low_cpu_mem_usage=True,
             max_memory={0: "20GB"} if torch.cuda.is_available() else None
         ).to(device)
-
+        
         tokenizer = AutoTokenizer.from_pretrained(tokenizer_name, trust_remote_code=True)
         tokenizer.padding_side = "left"
         if tokenizer.pad_token_id is None:
@@ -160,30 +160,30 @@ def run_dpo_generation(
         except Exception as e2:
             print(f"❌ DPO model也加载失败: {e2}")
             return
-
+    
     def build_input(prompt, v1, v2):
-        h = int(np.round(v1 * 100))
-        v = int(np.round(v2 * 100))
-        sys_instruction = f"You are a helpful assistant. Your response should maximize weighted rating = helpfulness*{h} + verbosity*{v}."
-        return [{"role": "user", "content": f"{sys_instruction}\n\n{prompt}"}]
+    h = int(np.round(v1 * 100))
+    v = int(np.round(v2 * 100))
+    sys_instruction = f"You are a helpful assistant. Your response should maximize weighted rating = helpfulness*{h} + verbosity*{v}."
+    return [{"role": "user", "content": f"{sys_instruction}\n\n{prompt}"}]
 
     def generate_response_batch(prompts_batch, prompt_ids_batch, v1, v2):
         input_ids_list = []
         for prompt in prompts_batch:
             messages = build_input(prompt, v1, v2)
             input_ids = tokenizer.apply_chat_template(
-                messages, add_generation_prompt=True, return_tensors="pt"
+            messages, add_generation_prompt=True, return_tensors="pt"
             )[0]
             input_ids_list.append(input_ids.to(device))
 
         input_ids_padded = torch.nn.utils.rnn.pad_sequence(
             input_ids_list, batch_first=True, padding_value=tokenizer.pad_token_id
         ).to(device)
-
+        
         attention_mask = (input_ids_padded != tokenizer.pad_token_id).to(device)
         max_input_len = input_ids_padded.shape[1]
         max_new_tokens = min(512, 2048 - max_input_len)  # 减少token数量
-
+        
         with torch.no_grad():
             outputs = model.generate(
                 input_ids=input_ids_padded,
@@ -196,7 +196,7 @@ def run_dpo_generation(
                 top_p=0.9,
                 repetition_penalty=1.1
             )
-
+        
         responses = []
         for i, input_ids in enumerate(input_ids_list):
             generated_tokens = outputs[i][input_ids.shape[0]:]
@@ -207,7 +207,7 @@ def run_dpo_generation(
                 "response": decoded
             })
         return responses
-
+    
     # === 主循环 ===
     for i, (v_vec, angle_deg) in enumerate(zip(valid_vs, valid_angles)):
         v1, v2 = v_vec[0], v_vec[1]
@@ -227,7 +227,7 @@ def run_dpo_generation(
             end = min(start + batch_size, len(prompts))
             batch_prompts_all = prompts[start:end]
             batch_ids_all = prompt_ids[start:end]
-
+            
             unprocessed_indices = [j for j, pid in enumerate(batch_ids_all) if pid not in done_prompt_ids]
             if not unprocessed_indices:
                 continue

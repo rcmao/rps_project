@@ -1,159 +1,23 @@
-# steerlm_nemo_generation.py - 使用Hugging Face Transformers加载和测试SteerLM格式
-import os
-import numpy as np
-import pandas as pd
+# ================== Colab 依赖安装 ==================
+# 在Colab中可直接运行此脚本
+!pip install -q transformers accelerate datasets torch tqdm
+
+import torch
 from datasets import load_dataset
 from tqdm.auto import tqdm
-import torch
-import time
-import random
-import json
+from transformers import AutoTokenizer, AutoModelForCausalLM, GenerationConfig
 
-# =============================================================================
-# 🌐 网络配置 - 支持国内镜像
-# =============================================================================
-
-# 国内镜像选项
-MIRROR_OPTIONS = {
-    "official": {
-        "hf_endpoint": None,
-        "name": "Official HuggingFace",
-        "description": "直接访问官方HuggingFace"
-    },
-    "hf_mirror": {
-        "hf_endpoint": "https://hf-mirror.com", 
-        "name": "HF Mirror",
-        "description": "国内HF镜像 (推荐)"
-    },
-    "modelfun": {
-        "hf_endpoint": "https://www.modelfun.cn",
-        "name": "ModelFun",
-        "description": "模型乐园镜像"
-    }
-}
-
-def setup_mirror(mirror_choice="hf_mirror"):
-    """设置镜像配置"""
-    if mirror_choice in MIRROR_OPTIONS:
-        mirror = MIRROR_OPTIONS[mirror_choice]
-        if mirror["hf_endpoint"]:
-            os.environ['HF_ENDPOINT'] = mirror["hf_endpoint"]
-        elif 'HF_ENDPOINT' in os.environ:
-            del os.environ['HF_ENDPOINT']
-        
-        print(f"🌐 使用镜像: {mirror['name']} - {mirror['description']}")
-        return mirror["name"]
-    else:
-        print(f"❌ 未知镜像选择: {mirror_choice}")
-        return "Unknown"
-
-# 设置网络超时和重试
-os.environ['HF_HUB_DOWNLOAD_TIMEOUT'] = '300'
-os.environ['TRANSFORMERS_CACHE'] = '/root/.cache/huggingface'
-
-# 默认使用国内镜像
-current_mirror = setup_mirror("hf_mirror")  # 改为 "hf_mirror"
-
-print("🌐 Network configuration:")
-print(f"Current Mirror: {current_mirror}")
-print(f"HF_ENDPOINT: {os.environ.get('HF_ENDPOINT', 'Official HuggingFace')}")
-print(f"Cache dir: {os.environ.get('TRANSFORMERS_CACHE', 'Default')}")
-
-# =============================================================================
-
-# 导入Transformers相关模块
-try:
-    from transformers import AutoTokenizer, AutoModelForCausalLM, GenerationConfig
-    import transformers
-    print("✅ Transformers toolkit imported successfully!")
-except ImportError as e:
-    print(f"❌ Transformers import failed: {e}")
-    print("💡 请确保已正确安装 transformers: pip install transformers")
-    exit(1)
-
-# 定义方向向量
-PREFERENCE_DIRECTIONS = {
-    "v3": {"vector": (0.9848, 0.1736), "angle": 10},
-    "v4": {"vector": (0.9659, 0.2588), "angle": 15},
-    "v5": {"vector": (0.9397, 0.3420), "angle": 20},
-    "v6": {"vector": (0.9063, 0.4226), "angle": 25},
-    "v7": {"vector": (0.8660, 0.5000), "angle": 30},
-    "v8": {"vector": (0.8192, 0.5736), "angle": 35},
-    "v9": {"vector": (0.7660, 0.6428), "angle": 40},
-    "v10": {"vector": (0.7071, 0.7071), "angle": 45},
-}
-
-def load_test_model(model_name="microsoft/DialoGPT-medium", device="cuda"):
-    """加载测试用的Transformers模型"""
-    print(f"🤖 Loading test model: {model_name}")
-    
-    try:
-        # 加载tokenizer
-        print("📝 Loading tokenizer...")
-        tokenizer = AutoTokenizer.from_pretrained(
-            model_name,
-            trust_remote_code=True,
-            cache_dir="/root/.cache/huggingface"
-        )
-        
-        # 设置pad_token
-        if tokenizer.pad_token is None:
-            tokenizer.pad_token = tokenizer.eos_token
-        
-        # 加载模型
-        print("🧠 Loading model...")
-        model = AutoModelForCausalLM.from_pretrained(
-            model_name,
-            torch_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
-            device_map="auto" if torch.cuda.is_available() else None,
-            trust_remote_code=True,
-            cache_dir="/root/.cache/huggingface"
-        )
-        
-        # 设置为评估模式
-        model.eval()
-        
-        print("✅ Test model loaded successfully!")
-        return model, tokenizer
-        
-    except Exception as e:
-        print(f"❌ Failed to load test model: {e}")
-        return None, None
-
-def dpa_vector_to_steerlm_attributes(v1, v2):
-    """映射DPA向量到SteerLM属性格式 - 严格按照论文规范"""
-    helpfulness = max(0, min(4, round(v1 * 4)))
-    verbosity = max(0, min(4, round(v2 * 4)))
-    
-    return {
-        "quality": 4,
-        "understanding": 4,
-        "correctness": 4,
-        "coherence": 4,
-        "complexity": 2,        # 修正：4 → 2
-        "verbosity": verbosity,
-        "toxicity": 0,
-        "humor": 0,
-        "creativity": 1,        # 修正：0 → 1
-        "violence": 0,
-        "helpfulness": helpfulness,
-        "not_appropriate": 0,
-        "hate_speech": 0,
-        "sexual_content": 0,
-        "fails_task": 0,
-        "political_content": 0,
-        "moral_judgement": 0,
-        "lang": "en"
-    }
-
-def build_steerlm_prompt(prompt, v1, v2):
-    """构建SteerLM格式的prompt"""
-    attrs = dpa_vector_to_steerlm_attributes(v1, v2)
-    
-    # 按照官方顺序构建属性字符串
-    attr_string = f"quality:{attrs['quality']},understanding:{attrs['understanding']},correctness:{attrs['correctness']},coherence:{attrs['coherence']},complexity:{attrs['complexity']},verbosity:{attrs['verbosity']},toxicity:{attrs['toxicity']},humor:{attrs['humor']},creativity:{attrs['creativity']},violence:{attrs['violence']},helpfulness:{attrs['helpfulness']},not_appropriate:{attrs['not_appropriate']},hate_speech:{attrs['hate_speech']},sexual_content:{attrs['sexual_content']},fails_task:{attrs['fails_task']},political_content:{attrs['political_content']},moral_judgement:{attrs['moral_judgement']},lang:{attrs['lang']}"
-    
-    # 官方SteerLM prompt格式
+# ================== SteerLM Prompt 构建 ==================
+def build_steerlm_prompt(prompt, attr_dict=None):
+    # 默认属性全4（可自定义）
+    if attr_dict is None:
+        attr_dict = {
+            "quality": 4, "understanding": 4, "correctness": 4, "coherence": 4, "complexity": 4,
+            "verbosity": 4, "toxicity": 0, "humor": 0, "creativity": 0, "violence": 0,
+            "helpfulness": 4, "not_appropriate": 0, "hate_speech": 0, "sexual_content": 0,
+            "fails_task": 0, "political_content": 0, "moral_judgement": 0, "lang": "en"
+        }
+    attr_string = ",".join([f"{k}:{v}" for k, v in attr_dict.items()])
     steerlm_prompt = f"""<extra_id_0>System
 A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.
 
@@ -162,181 +26,89 @@ A chat between a curious user and an artificial intelligence assistant. The assi
 <extra_id_1>Assistant
 <extra_id_2>{attr_string}
 """
-    
-    return steerlm_prompt, attr_string
+    return steerlm_prompt
 
-def build_simple_prompt(prompt, v1, v2):
-    """构建简化的prompt格式用于测试"""
-    helpfulness = max(0, min(4, round(v1 * 4)))
-    verbosity = max(0, min(4, round(v2 * 4)))
-    
-    # 简化的prompt格式
-    simple_prompt = f"""System: You are a helpful AI assistant. Please respond with helpfulness level {helpfulness}/4 and verbosity level {verbosity}/4.
+# ================== 加载模型 ==================
+def load_nemotron_model(model_name="nvidia/nemotron-3-8b-chat-4k-steerlm"):
+    print(f"🤖 Loading model: {model_name}")
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_name,
+        trust_remote_code=True,
+        use_fast=False   # 关键参数！
+    )
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name,
+        torch_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
+        device_map="auto" if torch.cuda.is_available() else None,
+        trust_remote_code=True,
+    )
+    model.eval()
+    return model, tokenizer
 
-User: {prompt}
-
-Assistant:"""
-    
-    return simple_prompt
-
-def generate_with_transformers_model(model, tokenizer, prompt_text, max_tokens=512, temperature=0.7):
-    """使用Transformers模型生成文本"""
-    try:
-        # 编码输入
-        inputs = tokenizer(prompt_text, return_tensors="pt", truncation=True, max_length=4096)
-        
-        # 移动到正确的设备
-        if torch.cuda.is_available():
-            inputs = {k: v.cuda() for k, v in inputs.items()}
-        
-        # 生成配置
-        generation_config = GenerationConfig(
-            max_new_tokens=max_tokens,
-            min_new_tokens=1,
-            temperature=temperature,
-            top_k=50,
-            top_p=0.9,
-            repetition_penalty=1.2,
-            do_sample=temperature > 0.0,
-            pad_token_id=tokenizer.eos_token_id,
-            eos_token_id=tokenizer.eos_token_id,
-        )
-        
-        # 生成响应
-        with torch.no_grad():
-            outputs = model.generate(
-                **inputs,
-                generation_config=generation_config,
-                return_dict_in_generate=True,
-                output_scores=False,
-            )
-        
-        # 解码输出
-        generated_text = tokenizer.decode(outputs.sequences[0], skip_special_tokens=False)
-        
-        # 移除输入部分，只保留生成的内容
-        if generated_text.startswith(prompt_text):
-            response = generated_text[len(prompt_text):].strip()
-        else:
-            response = generated_text
-        
-        return response
-            
-    except Exception as e:
-        return f"ERROR: {str(e)}"
-
-def generate_responses_for_direction(prompts, v1, v2, model, tokenizer, direction_name):
-    """为指定方向生成响应"""
-    print(f"🎯 Generating responses for {direction_name} (v1={v1:.4f}, v2={v2:.4f})")
-    
-    results = []
-    
-    for i, prompt in enumerate(tqdm(prompts, desc=f"Generating {direction_name}")):
-        prompt_results = []
-        
-        # 为每个prompt生成3个响应
-        for sample_id in range(3):
-            try:
-                # 使用简化prompt格式
-                simple_prompt = build_simple_prompt(prompt, v1, v2)
-                
-                # 使用Transformers生成响应
-                response = generate_with_transformers_model(
-                    model=model,
-                    tokenizer=tokenizer,
-                    prompt_text=simple_prompt,
-                    max_tokens=512,
-                    temperature=0.7
-                )
-                
-                prompt_results.append({
-                    "prompt_id": i,
-                    "sample_id": sample_id,
-                    "prompt": prompt,
-                    "response": response,
-                    "direction": direction_name,
-                    "v1": v1,
-                    "v2": v2,
-                    "attributes": f"helpfulness:{v1:.2f},verbosity:{v2:.2f}",
-                    "model_name": "dialo-gpt-medium-test"
-                })
-                
-            except Exception as e:
-                print(f"❌ Error generating response for prompt {i}, sample {sample_id}: {e}")
-                prompt_results.append({
-                    "prompt_id": i,
-                    "sample_id": sample_id,
-                    "prompt": prompt,
-                    "response": f"ERROR: {str(e)}",
-                    "direction": direction_name,
-                    "v1": v1,
-                    "v2": v2,
-                    "attributes": "ERROR",
-                    "model_name": "dialo-gpt-medium-test"
-                })
-        
-        results.extend(prompt_results)
-    
-    return results
-
-def main():
-    """主函数 - 使用Transformers测试SteerLM格式"""
-    print("🚀 Starting Transformers SteerLM format test!")
-    
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
-    # 根据显存设置batch_size
+# ================== 生成函数 ==================
+def generate_with_nemotron(model, tokenizer, prompt_text, max_tokens=512, temperature=0.7):
+    inputs = tokenizer(prompt_text, return_tensors="pt", truncation=True, max_length=4096)
     if torch.cuda.is_available():
-        gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1024**3  # GB
-        print(f"🚀 GPU Memory: {gpu_memory:.1f}GB")
+        inputs = {k: v.cuda() for k, v in inputs.items()}
+    generation_config = GenerationConfig(
+        max_new_tokens=max_tokens,
+        min_new_tokens=1,
+        temperature=temperature,
+        top_k=50,
+        top_p=0.9,
+        repetition_penalty=1.2,
+        do_sample=temperature > 0.0,
+        pad_token_id=tokenizer.eos_token_id,
+        eos_token_id=tokenizer.eos_token_id,
+    )
+    with torch.no_grad():
+        outputs = model.generate(
+            **inputs,
+            generation_config=generation_config,
+            return_dict_in_generate=True,
+            output_scores=False,
+        )
+    generated_text = tokenizer.decode(outputs.sequences[0], skip_special_tokens=False)
+    # 提取 Assistant 部分
+    if "<extra_id_1>Assistant" in generated_text:
+        response = generated_text.split("<extra_id_1>Assistant")[-1]
+        # 去掉属性行
+        if "<extra_id_2>" in response:
+            response = response.split("<extra_id_2>")[-1]
+        response = response.strip()
     else:
-        print("💻 Using CPU")
-    
-    # 加载测试模型
-    model, tokenizer = load_test_model()
-    if model is None or tokenizer is None:
-        print("❌ Failed to load test model")
-        return
-    
-    # 加载测试数据
+        response = generated_text
+    return response
+
+# ================== 主流程 ==================
+def main():
+    print("🚀 Starting Nemotron-3-8B SteerLM test in Colab!")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
+
+    # 加载模型
+    model, tokenizer = load_nemotron_model()
+    # 加载数据
     print("📦 Loading UltraFeedback dataset...")
     ds = load_dataset("HuggingFaceH4/ultrafeedback_binarized", split="test_prefs")
-    prompts = ds["prompt"][:5]  # 先测试5个
-    
-    # 测试一个prompt
-    test_prompt = prompts[0]
-    v1, v2 = 0.8, 0.4  # 高helpfulness，中等verbosity
-    
-    print(f"\n🧪 Testing with prompt: {test_prompt[:100]}...")
-    print(f"🎯 DPA vector: ({v1}, {v2})")
-    
-    # 测试SteerLM格式
-    steerlm_prompt, attr_string = build_steerlm_prompt(test_prompt, v1, v2)
-    print(f"\n📝 Generated SteerLM prompt:")
-    print(f"```\n{steerlm_prompt}\n```")
-    
-    # 测试简化格式
-    simple_prompt = build_simple_prompt(test_prompt, v1, v2)
-    print(f"\n📝 Generated simple prompt:")
-    print(f"```\n{simple_prompt}\n```")
-    
-    # 生成响应
-    print("⚡ Generating response...")
-    response = generate_with_transformers_model(
-        model=model,
-        tokenizer=tokenizer,
-        prompt_text=simple_prompt,
-        max_tokens=512,
-        temperature=0.7
-    )
-    
-    print(f"\n🎯 Generated Response:")
-    print(f"```\n{response}\n```")
-    
-    print(f"\n✅ Transformers SteerLM format test successful!")
-    print(f"📊 Attribute string used: {attr_string}")
-    print(f"🔧 Model: microsoft/DialoGPT-medium (test model)")
-    print(f"💡 Note: This is a test implementation. For real SteerLM models, use NeMo framework.")
+    prompts = ds["prompt"][:10]  # 只取前10个
+
+    # 批量生成前10个prompt的响应
+    print("\n⚡ Generating responses for first 10 prompts...")
+    results = []
+    for i, prompt in enumerate(tqdm(prompts, desc="Generating")):
+        steerlm_prompt = build_steerlm_prompt(prompt)
+        response = generate_with_nemotron(
+            model=model,
+            tokenizer=tokenizer,
+            prompt_text=steerlm_prompt,
+            max_tokens=512,
+            temperature=0.7
+        )
+        results.append({"prompt_id": i, "prompt": prompt, "response": response})
+        print(f"\nPrompt {i+1}:\n{prompt}\n---\nResponse:\n{response}\n{'='*40}")
+
+    print("\n✅ All done! You can now analyze the results.")
 
 if __name__ == "__main__":
     main() 
