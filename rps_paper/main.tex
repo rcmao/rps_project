@@ -716,6 +716,45 @@ For human preference simulation, we use GPT-4o to conduct pairwise comparisons f
 
 We evaluate 2000 randomly selected test-time prompts from the UltraFeedback dataset, evenly sampled from dialogue and summarization tasks.
 
+\subsection{Preference-Aligned Judge Prompts}
+
+\begingroup\small
+\noindent\textbf{Direct preference-aligned A/B/TIE.} To eliminate positional bias, we randomize A/B positions with a globally seeded pseudo-random number generator (PRNG). The procedure is:
+\begin{itemize}
+    \item \textbf{Initialization}: set a fixed seed once at the start of evaluation.
+    \item \textbf{Per-item decision}: for each comparison, draw a Bernoulli(0.5) coin flip; on heads, swap Response A and Response B.
+    \item \textbf{Reproducibility}: given the same seed and the same data order, the A/B assignment is identical across runs. When resuming, we re-use the same seed and iterate in the same order to preserve assignments.
+    \item \textbf{Book-keeping}: if a swap occurs, we also flip the \texttt{a\_is\_baseline} flag and record \texttt{ab\_swapped=True} in the output.
+\end{itemize}
+
+\noindent\textbf{Judge instruction.}
+\begin{quote}\ttfamily\small
+You are a careful evaluation judge. Decide which response better aligns with the user preference that balances two criteria with given weights:\\
+- Helpfulness (weight = \{wh\})\\
+- Verbosity (weight = \{wv\})\\
+(measured by informative detail and explanation quality; do not reward length itself. Penalize fluff, repetition, and low information density. Do not penalize concision if sufficiently informative.)\\[4pt]
+Safety/correctness override:\\
+- Factually wrong, unsafe, or misleading content should lose regardless of verbosity.\\[4pt]
+Scoring guideline (internal):\\
+- For each response, assess Helpfulness and Verbosity quality (0--10 integer scale), then compute S = (wh)*Helpfulness + (wv)*Verbosity. Choose the higher S. If the margin is very small, you may output "Tie".\\[4pt]
+Output format (exactly):\\
+Comparison: <one-sentence comparison and reason>\\
+More aligned: A | B | Tie\\
+Query: <the user query>\\
+Response A: <response 1>\\
+Response B: <response 2>
+\end{quote}
+
+\noindent\textbf{Direction weights and target preferences.} We evaluate eight target preference directions \(\mathbf{v}_3 \ldots \mathbf{v}_{10}\) with weights \(\mathbf{v}=(v_h, v_v)=(\cos\theta,\,\sin\theta)\) at angles \(\theta \in \{10^\circ,15^\circ,20^\circ,25^\circ,30^\circ,35^\circ,40^\circ,45^\circ\}\) (see Table~\ref{tab:directions}). In the judge prompt, the placeholders \{\texttt{wh}\} and \{\texttt{wv}\} are set to the current direction's components \(v_h\) and \(v_v\) respectively (e.g., for \(\mathbf{v}_3\) at \(10^\circ\), \{\texttt{wh}\} = 0.9848, \{\texttt{wv}\} = 0.1736), matching the code.
+
+For each direction, the judge first provides integer scores for Helpfulness and Verbosity for A and B (0--10 each). We then compute offline weighted scores using that direction's weights:
+\[
+S_A = v_h\,\text{Helpfulness}_A + v_v\,\text{Verbosity}_A,\quad
+S_B = v_h\,\text{Helpfulness}_B + v_v\,\text{Verbosity}_B.
+\]
+We choose the higher score as the winner for that comparison. Ties are allowed when \(|S_A - S_B| < \tau\), with \(\tau=1.0\) in our runs. Results are reported per direction and summarized overall.
+\endgroup
+
 \subsection{DPA-Compatible Generation Prompts}
 
 To generate model responses under directional preferences, we follow the DPA input format. For each test prompt $x$ and preference vector $\mathbf{v} = (v_h, v_v)$, we construct the input as follows:
