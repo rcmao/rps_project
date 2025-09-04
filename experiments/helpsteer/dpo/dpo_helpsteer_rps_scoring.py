@@ -1,4 +1,5 @@
 import os
+import sys
 import glob
 import pandas as pd
 import numpy as np
@@ -46,7 +47,7 @@ def score_response(prompt, response, model, tokenizer, device):
         inputs = {k: v.to(device) for k, v in inputs.items()}
         with torch.no_grad():
             logits = model(**inputs).logits.squeeze().detach().cpu().numpy()
-        helpfulness = float(logits[0])
+        helpfulness = float(logits[9])  # 修正：helpfulness应该使用索引9
         verbosity = float(logits[4])
         return helpfulness, verbosity
     except Exception:
@@ -201,9 +202,35 @@ def select_best_response(scored_dir, output_path):
     print(f"🏆 Best saved: {output_path} ({len(best)} rows)")
 
 
+def parse_args():
+    """Parse command line arguments"""
+    args = {}
+    for arg in sys.argv[1:]:
+        if '=' in arg:
+            key, value = arg.split('=', 1)
+            args[key] = value
+    return args
+
+
 def main():
-    base_dir = "/content/drive/MyDrive/dpo_rps_helpsteer_outputs"
-    out_root = "/content/drive/MyDrive"
+    # Parse command line arguments
+    args = parse_args()
+    
+    # Get input path from command line or use default
+    if 'input_path' in args:
+        base_dir = args['input_path']
+    else:
+        print("Error: input_path parameter is required")
+        print("Usage: python3 dpo_helpsteer_rps_scoring.py input_path=/path/to/input")
+        sys.exit(1)
+    
+    # Set output directory
+    out_root = "/mnt/rps_project/data/helpsteer/dpa/dpa_rps_helpsteer_score"
+    os.makedirs(out_root, exist_ok=True)
+    
+    if not os.path.exists(base_dir):
+        print(f"Error: Input directory {base_dir} does not exist")
+        sys.exit(1)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model, tokenizer = load_reward_model(device)
@@ -217,7 +244,7 @@ def main():
         # Fallback: if no per-direction folder, group flat files containing tag
         if os.path.isdir(dir_path):
             input_dir = dir_path
-            scored_dir = os.path.join(input_dir, "scored")
+            scored_dir = os.path.join(out_root, f"scored_{direction}")
         else:
             input_dir = os.path.join(base_dir, f"__flat_{direction}")
             os.makedirs(input_dir, exist_ok=True)
@@ -237,7 +264,7 @@ def main():
             # Copy-less approach: create scored_dir under base with tag
             input_dir = os.path.dirname(tagged[0])  # place-holder; scoring will read all *.csv in this directory
             # narrow down by creating a temp list and scoring only those files: handled by selecting directory; leave as is
-            scored_dir = os.path.join(base_dir, f"scored_{direction}")
+            scored_dir = os.path.join(out_root, f"scored_{direction}")
 
         print(f"\n===== {direction} =====")
         run_reward_scoring(input_dir, scored_dir, model, tokenizer, device)
