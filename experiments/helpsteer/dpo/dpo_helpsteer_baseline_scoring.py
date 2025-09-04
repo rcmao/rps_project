@@ -1,4 +1,5 @@
 import os
+import sys
 import glob
 import pandas as pd
 from tqdm.auto import tqdm
@@ -117,9 +118,40 @@ def pick_best(df, model, tokenizer, device):
     return pd.DataFrame(results)
 
 
+def parse_args():
+    """Parse command line arguments"""
+    args = {}
+    for arg in sys.argv[1:]:
+        if '=' in arg:
+            key, value = arg.split('=', 1)
+            args[key] = value
+    return args
+
+
 def main():
-    input_dir = "/content/drive/MyDrive/helpsteer_dpo_baseline_outputs"
-    output_dir = "/content/drive/MyDrive/dpo_outputs"
+    # Parse command line arguments
+    args = parse_args()
+    
+    # Get input path from command line or use default
+    if 'input_path' in args:
+        input_dir = args['input_path']
+    else:
+        print("Error: input_path parameter is required")
+        print("Usage: python3 dpo_helpsteer_baseline_scoring.py input_path=/path/to/input output_path=/path/to/output")
+        sys.exit(1)
+    
+    # Get output path from command line or use default
+    if 'output_path' in args:
+        output_dir = args['output_path']
+    else:
+        print("Error: output_path parameter is required")
+        print("Usage: python3 dpo_helpsteer_baseline_scoring.py input_path=/path/to/input output_path=/path/to/output")
+        sys.exit(1)
+    
+    if not os.path.exists(input_dir):
+        print(f"Error: Input directory {input_dir} does not exist")
+        sys.exit(1)
+        
     os.makedirs(output_dir, exist_ok=True)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

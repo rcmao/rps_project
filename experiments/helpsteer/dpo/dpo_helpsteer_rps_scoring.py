@@ -221,11 +221,15 @@ def main():
         base_dir = args['input_path']
     else:
         print("Error: input_path parameter is required")
-        print("Usage: python3 dpo_helpsteer_rps_scoring.py input_path=/path/to/input")
+        print("Usage: python3 dpo_helpsteer_rps_scoring.py input_path=/path/to/input [output_path=/path/to/output]")
         sys.exit(1)
     
-    # Set output directory
-    out_root = "/mnt/rps_project/data/helpsteer/dpa/dpa_rps_helpsteer_score"
+    # Get output path from command line or use default
+    if 'output_path' in args:
+        out_root = args['output_path']
+    else:
+        out_root = "/mnt/rps_project/data/helpsteer/dpa/dpa_rps_helpsteer_score"
+    
     os.makedirs(out_root, exist_ok=True)
     
     if not os.path.exists(base_dir):
