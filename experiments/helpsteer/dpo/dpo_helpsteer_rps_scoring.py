@@ -47,8 +47,8 @@ def score_response(prompt, response, model, tokenizer, device):
         inputs = {k: v.to(device) for k, v in inputs.items()}
         with torch.no_grad():
             logits = model(**inputs).logits.squeeze().detach().cpu().numpy()
-        helpfulness = float(logits[9])  # 修正：helpfulness应该使用索引9
-        verbosity = float(logits[4])
+        helpfulness = float(logits[9])  # ultrafeedback-helpfulness
+        verbosity = float(logits[4])    # helpsteer-verbosity (这个在两个数据集中都是索引4)
         return helpfulness, verbosity
     except Exception:
         return 0.0, 0.0
@@ -79,14 +79,27 @@ def pick_best(df, model, tokenizer, device):
     group_key = "prompt_id" if "prompt_id" in df.columns else prompt_col
     results = []
 
+    # Check for main_v1/main_v2 columns (case-insensitive) once
+    main_v1_col = None
+    main_v2_col = None
+    for col in df.columns:
+        if col.lower() == "main_v1":
+            main_v1_col = col
+        elif col.lower() == "main_v2":
+            main_v2_col = col
+    
+    if main_v1_col is None or main_v2_col is None:
+        raise ValueError(f"Missing required columns: main_v1 and/or main_v2 not found in data")
+
     for gid, g in tqdm(df.groupby(group_key), total=df[group_key].nunique()):
         scored = []
         for idx, row in g.iterrows():
             prompt = str(row[prompt_col])
             response = str(row[response_col])
             h, v = score_response(prompt, response, model, tokenizer, device)
-            row_v1 = float(row.get("v1", 0.5))
-            row_v2 = float(row.get("v2", 0.5))
+            
+            row_v1 = float(row[main_v1_col])
+            row_v2 = float(row[main_v2_col])
             dpa = row_v1 * h + row_v2 * v
             scored.append({
                 "idx": idx,
@@ -112,8 +125,8 @@ def pick_best(df, model, tokenizer, device):
             "response": best["response"],
             "helpfulness": best["helpfulness"],
             "verbosity": best["verbosity"],
-            "v1": float(src_row.get("v1", 0.5)),
-            "v2": float(src_row.get("v2", 0.5)),
+            "main_v1": float(src_row[main_v1_col]),
+            "main_v2": float(src_row[main_v2_col]),
             "dpa_score": best["dpa_score"],
             "selected_as_best": True,
             "all_dpa_scores": [s["dpa_score"] for s in scored],
@@ -187,10 +200,19 @@ def select_best_response(scored_dir, output_path):
             continue
         if not {"prompt_id", "prompt", "response", "helpfulness", "verbosity"}.issubset(df.columns):
             continue
-        if "v1" in df.columns and "v2" in df.columns:
-            df["score_total"] = df["v1"] * df["helpfulness"] + df["v2"] * df["verbosity"]
-        else:
-            df["score_total"] = 0.7071 * df["helpfulness"] + 0.7071 * df["verbosity"]
+        # Check for main_v1/main_v2 columns (case-insensitive)
+        main_v1_col = None
+        main_v2_col = None
+        for col in df.columns:
+            if col.lower() == "main_v1":
+                main_v1_col = col
+            elif col.lower() == "main_v2":
+                main_v2_col = col
+        
+        if main_v1_col is None or main_v2_col is None:
+            raise ValueError(f"Missing required columns: main_v1 and/or main_v2 not found in data")
+        
+        df["score_total"] = df[main_v1_col] * df["helpfulness"] + df[main_v2_col] * df["verbosity"]
         dfs.append(df)
     if not dfs:
         print(f"❌ No valid data in {scored_dir}")
