@@ -1,4 +1,5 @@
 import os
+import sys
 import glob
 import pandas as pd
 from tqdm.auto import tqdm
@@ -45,7 +46,7 @@ def score_response(prompt, response, model, tokenizer, device):
         inputs = {k: v.to(device) for k, v in inputs.items()}
         with torch.no_grad():
             logits = model(**inputs).logits.squeeze().detach().cpu().numpy()
-        helpfulness = float(logits[0])
+        helpfulness = float(logits[9])
         verbosity = float(logits[4])
         return helpfulness, verbosity
     except Exception:
@@ -77,8 +78,28 @@ def pick_best(df, model, tokenizer, device):
             prompt = str(row[prompt_col])
             response = str(row[response_col])
             h, v = score_response(prompt, response, model, tokenizer, device)
-            row_v1 = float(row.get("v1", 0.5))
-            row_v2 = float(row.get("v2", 0.5))
+            
+            # 只从 direction_vector 中解析 v1, v2
+            direction_vector = row.get("direction_vector")
+            if direction_vector is None:
+                raise ValueError(f"Missing 'direction_vector' column in row {idx}")
+            
+            # 解析 direction_vector，假设格式为 "[v1, v2]" 或 "(v1, v2)" 或 "v1,v2"
+            try:
+                if isinstance(direction_vector, str):
+                    # 移除括号和空格，分割字符串
+                    clean_vector = direction_vector.strip("[]()").replace(" ", "")
+                    v1_str, v2_str = clean_vector.split(",")
+                    row_v1 = float(v1_str)
+                    row_v2 = float(v2_str)
+                elif isinstance(direction_vector, (list, tuple)):
+                    row_v1 = float(direction_vector[0])
+                    row_v2 = float(direction_vector[1])
+                else:
+                    raise ValueError(f"Unsupported direction_vector format: {type(direction_vector)}")
+            except (ValueError, IndexError) as e:
+                raise ValueError(f"Failed to parse direction_vector '{direction_vector}' in row {idx}: {e}")
+            
             dpa = row_v1 * h + row_v2 * v
             scored.append({
                 "idx": idx,
@@ -95,6 +116,26 @@ def pick_best(df, model, tokenizer, device):
         best = max(scored, key=lambda x: x["dpa_score"])
         # build output row matching expected schema when possible
         src_row = df.loc[best["idx"]]
+        
+        # 从 direction_vector 中解析 v1, v2 用于输出
+        direction_vector = src_row.get("direction_vector")
+        if direction_vector is None:
+            raise ValueError(f"Missing 'direction_vector' column in best response row")
+        
+        try:
+            if isinstance(direction_vector, str):
+                clean_vector = direction_vector.strip("[]()").replace(" ", "")
+                v1_str, v2_str = clean_vector.split(",")
+                best_v1 = float(v1_str)
+                best_v2 = float(v2_str)
+            elif isinstance(direction_vector, (list, tuple)):
+                best_v1 = float(direction_vector[0])
+                best_v2 = float(direction_vector[1])
+            else:
+                raise ValueError(f"Unsupported direction_vector format: {type(direction_vector)}")
+        except (ValueError, IndexError) as e:
+            raise ValueError(f"Failed to parse direction_vector '{direction_vector}' in best response: {e}")
+        
         out_row = {
             "prompt_id": src_row.get("prompt_id", gid),
             "prompt": best["prompt"],
@@ -105,8 +146,8 @@ def pick_best(df, model, tokenizer, device):
             "response": best["response"],
             "helpfulness": best["helpfulness"],
             "verbosity": best["verbosity"],
-            "v1": float(src_row.get("v1", 0.5)),
-            "v2": float(src_row.get("v2", 0.5)),
+            "v1": float(best_v1),
+            "v2": float(best_v2),
             "dpa_score": best["dpa_score"],
             "selected_as_best": True,
             "all_dpa_scores": [s["dpa_score"] for s in scored],
@@ -117,9 +158,40 @@ def pick_best(df, model, tokenizer, device):
     return pd.DataFrame(results)
 
 
+def parse_args():
+    """Parse command line arguments"""
+    args = {}
+    for arg in sys.argv[1:]:
+        if '=' in arg:
+            key, value = arg.split('=', 1)
+            args[key] = value
+    return args
+
+
 def main():
-    input_dir = "/content/drive/MyDrive/helpsteer_dpo_baseline_outputs"
-    output_dir = "/content/drive/MyDrive/dpo_outputs"
+    # Parse command line arguments
+    args = parse_args()
+    
+    # Get input path from command line or use default
+    if 'input_path' in args:
+        input_dir = args['input_path']
+    else:
+        print("Error: input_path parameter is required")
+        print("Usage: python3 dpo_helpsteer_baseline_scoring.py input_path=/path/to/input output_path=/path/to/output")
+        sys.exit(1)
+    
+    # Get output path from command line or use default
+    if 'output_path' in args:
+        output_dir = args['output_path']
+    else:
+        print("Error: output_path parameter is required")
+        print("Usage: python3 dpo_helpsteer_baseline_scoring.py input_path=/path/to/input output_path=/path/to/output")
+        sys.exit(1)
+    
+    if not os.path.exists(input_dir):
+        print(f"Error: Input directory {input_dir} does not exist")
+        sys.exit(1)
+        
     os.makedirs(output_dir, exist_ok=True)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
