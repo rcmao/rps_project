@@ -1,0 +1,427 @@
+nohup: ignoring input
+INFO 09-07 23:13:36 [__init__.py:241] Automatically detected platform cuda.
+🚀 Running in Server environment with vLLM acceleration
+🔧 PyTorch version: 2.7.1+cu126
+🔧 CUDA available: True
+🔧 CUDA device: NVIDIA A100-SXM4-80GB
+🔧 GPU memory: 85.0 GB
+🌏 已设置Hugging Face国内镜像: https://hf-mirror.com
+📁 Output directory: /mnt/task_runtime/shiyl_workspace/workspace/ruochen_project/data/helpsteer2/sft/sft_baseline5/Mistral-7B-Instruct-v0.2
+🤖 Using model: mistralai/Mistral-7B-Instruct-v0.2
+📊 Will process up to 2000 prompts (after deduplication)
+🔧 Using device: cuda
+🔧 GPU Memory: 85.0 GB
+🔧 High-end GPU detected, using optimized settings
+📦 Loading prompts from HelpSteer2 validation split via mirror...
+✅ Loaded HelpSteer2 dataset with 1038 examples!
+📊 Original dataset size: 1038
+🔄 开始基于'prompt'字段进行去重...
+✅ 去重完成: 1038 -> 519 (去除了 519 个重复项)
+✅ Final dataset size: 519 prompts
+🔧 Using settings: {'batch_size': 16, 'max_new_tokens': 512, 'torch_dtype': torch.bfloat16, 'device_map': 'auto'}
+🤖 Loading model mistralai/Mistral-7B-Instruct-v0.2 with vLLM from mirror...
+INFO 09-07 23:13:40 [utils.py:326] non-default args: {'model': 'mistralai/Mistral-7B-Instruct-v0.2', 'trust_remote_code': True, 'max_model_len': 4096, 'gpu_memory_utilization': 0.35, 'disable_log_stats': True}
+The argument `trust_remote_code` is to be used with Auto classes. It has no effect here and is ignored.
+INFO 09-07 23:13:49 [__init__.py:711] Resolved architecture: MistralForCausalLM
+`torch_dtype` is deprecated! Use `dtype` instead!
+INFO 09-07 23:13:49 [__init__.py:1750] Using max model len 4096
+INFO 09-07 23:13:49 [scheduler.py:222] Chunked prefill is enabled with max_num_batched_tokens=8192.
+/miniforge/lib/python3.12/site-packages/vllm/transformers_utils/tokenizer_group.py:26: FutureWarning: It is strongly recommended to run mistral models with `--tokenizer-mode "mistral"` to ensure correct encoding and decoding.
+  self.tokenizer = get_tokenizer(self.tokenizer_id, **tokenizer_config)
+WARNING 09-07 23:13:49 [__init__.py:2921] We must use the `spawn` multiprocessing start method. Overriding VLLM_WORKER_MULTIPROC_METHOD to 'spawn'. See https://docs.vllm.ai/en/latest/usage/troubleshooting.html#python-multiprocessing for more information. Reasons: CUDA is initialized
+INFO 09-07 23:13:55 [__init__.py:241] Automatically detected platform cuda.
+🚀 Running in Server environment with vLLM acceleration
+🔧 PyTorch version: 2.7.1+cu126
+🔧 CUDA available: True
+🔧 CUDA device: NVIDIA A100-SXM4-80GB
+🔧 GPU memory: 85.0 GB
+🌏 已设置Hugging Face国内镜像: https://hf-mirror.com
+[1;36m(EngineCore_0 pid=2113604)[0;0m INFO 09-07 23:13:57 [core.py:636] Waiting for init message from front-end.
+[1;36m(EngineCore_0 pid=2113604)[0;0m INFO 09-07 23:13:57 [core.py:74] Initializing a V1 LLM engine (v0.10.1.1) with config: model='mistralai/Mistral-7B-Instruct-v0.2', speculative_config=None, tokenizer='mistralai/Mistral-7B-Instruct-v0.2', skip_tokenizer_init=False, tokenizer_mode=auto, revision=None, override_neuron_config={}, tokenizer_revision=None, trust_remote_code=True, dtype=torch.bfloat16, max_seq_len=4096, download_dir=None, load_format=auto, tensor_parallel_size=1, pipeline_parallel_size=1, disable_custom_all_reduce=False, quantization=None, enforce_eager=False, kv_cache_dtype=auto, device_config=cuda, decoding_config=DecodingConfig(backend='auto', disable_fallback=False, disable_any_whitespace=False, disable_additional_properties=False, reasoning_backend=''), observability_config=ObservabilityConfig(show_hidden_metrics_for_version=None, otlp_traces_endpoint=None, collect_detailed_traces=None), seed=0, served_model_name=mistralai/Mistral-7B-Instruct-v0.2, enable_prefix_caching=True, chunked_prefill_enabled=True, use_async_output_proc=True, pooler_config=None, compilation_config={"level":3,"debug_dump_path":"","cache_dir":"","backend":"","custom_ops":[],"splitting_ops":["vllm.unified_attention","vllm.unified_attention_with_output","vllm.mamba_mixer2"],"use_inductor":true,"compile_sizes":[],"inductor_compile_config":{"enable_auto_functionalized_v2":false},"inductor_passes":{},"cudagraph_mode":1,"use_cudagraph":true,"cudagraph_num_of_warmups":1,"cudagraph_capture_sizes":[512,504,496,488,480,472,464,456,448,440,432,424,416,408,400,392,384,376,368,360,352,344,336,328,320,312,304,296,288,280,272,264,256,248,240,232,224,216,208,200,192,184,176,168,160,152,144,136,128,120,112,104,96,88,80,72,64,56,48,40,32,24,16,8,4,2,1],"cudagraph_copy_inputs":false,"full_cuda_graph":false,"pass_config":{},"max_capture_size":512,"local_cache_dir":null}
+[1;36m(EngineCore_0 pid=2113604)[0;0m INFO 09-07 23:14:00 [parallel_state.py:1134] rank 0 in world size 1 is assigned as DP rank 0, PP rank 0, TP rank 0, EP rank 0
+[1;36m(EngineCore_0 pid=2113604)[0;0m WARNING 09-07 23:14:00 [topk_topp_sampler.py:61] FlashInfer is not available. Falling back to the PyTorch-native implementation of top-p & top-k sampling. For the best performance, please install FlashInfer.
+[1;36m(EngineCore_0 pid=2113604)[0;0m INFO 09-07 23:14:00 [gpu_model_runner.py:1953] Starting to load model mistralai/Mistral-7B-Instruct-v0.2...
+[1;36m(EngineCore_0 pid=2113604)[0;0m INFO 09-07 23:14:00 [gpu_model_runner.py:1985] Loading model from scratch...
+[1;36m(EngineCore_0 pid=2113604)[0;0m INFO 09-07 23:14:00 [cuda.py:328] Using Flash Attention backend on V1 engine.
+[1;36m(EngineCore_0 pid=2113604)[0;0m INFO 09-07 23:14:01 [weight_utils.py:296] Using model weights format ['*.safetensors']
+[1;36m(EngineCore_0 pid=2113604)[0;0m Loading safetensors checkpoint shards:   0% Completed | 0/3 [00:00<?, ?it/s]
+[1;36m(EngineCore_0 pid=2113604)[0;0m Loading safetensors checkpoint shards:  33% Completed | 1/3 [00:01<00:02,  1.40s/it]
+[1;36m(EngineCore_0 pid=2113604)[0;0m Loading safetensors checkpoint shards:  67% Completed | 2/3 [00:02<00:01,  1.48s/it]
+[1;36m(EngineCore_0 pid=2113604)[0;0m Loading safetensors checkpoint shards: 100% Completed | 3/3 [00:04<00:00,  1.45s/it]
+[1;36m(EngineCore_0 pid=2113604)[0;0m Loading safetensors checkpoint shards: 100% Completed | 3/3 [00:04<00:00,  1.45s/it]
+[1;36m(EngineCore_0 pid=2113604)[0;0m 
+[1;36m(EngineCore_0 pid=2113604)[0;0m INFO 09-07 23:14:06 [default_loader.py:262] Loading weights took 4.34 seconds
+[1;36m(EngineCore_0 pid=2113604)[0;0m INFO 09-07 23:14:07 [gpu_model_runner.py:2007] Model loading took 13.4967 GiB and 6.318849 seconds
+[1;36m(EngineCore_0 pid=2113604)[0;0m INFO 09-07 23:14:17 [backends.py:548] Using cache directory: /root/.cache/vllm/torch_compile_cache/e7e33ef7a2/rank_0_0/backbone for vLLM's torch.compile
+[1;36m(EngineCore_0 pid=2113604)[0;0m INFO 09-07 23:14:17 [backends.py:559] Dynamo bytecode transform time: 10.03 s
+[1;36m(EngineCore_0 pid=2113604)[0;0m INFO 09-07 23:14:35 [backends.py:161] Directly load the compiled graph(s) for dynamic shape from the cache, took 16.893 s
+[1;36m(EngineCore_0 pid=2113604)[0;0m INFO 09-07 23:14:36 [monitor.py:34] torch.compile takes 10.03 s in total
+[1;36m(EngineCore_0 pid=2113604)[0;0m INFO 09-07 23:14:38 [gpu_worker.py:276] Available KV cache memory: 13.27 GiB
+[1;36m(EngineCore_0 pid=2113604)[0;0m INFO 09-07 23:14:38 [kv_cache_utils.py:849] GPU KV cache size: 108,736 tokens
+[1;36m(EngineCore_0 pid=2113604)[0;0m INFO 09-07 23:14:38 [kv_cache_utils.py:853] Maximum concurrency for 4,096 tokens per request: 26.55x
+[1;36m(EngineCore_0 pid=2113604)[0;0m Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):   0%|          | 0/67 [00:00<?, ?it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):   3%|▎         | 2/67 [00:00<00:04, 14.75it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):   6%|▌         | 4/67 [00:00<00:04, 14.10it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):   9%|▉         | 6/67 [00:00<00:04, 14.20it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  12%|█▏        | 8/67 [00:00<00:03, 15.17it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  15%|█▍        | 10/67 [00:00<00:03, 15.72it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  18%|█▊        | 12/67 [00:00<00:03, 15.65it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  21%|██        | 14/67 [00:00<00:03, 15.45it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  24%|██▍       | 16/67 [00:01<00:03, 15.77it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  27%|██▋       | 18/67 [00:01<00:02, 16.57it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  30%|██▉       | 20/67 [00:01<00:02, 16.76it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  33%|███▎      | 22/67 [00:01<00:02, 16.60it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  36%|███▌      | 24/67 [00:01<00:02, 17.16it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  39%|███▉      | 26/67 [00:01<00:02, 17.54it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  42%|████▏     | 28/67 [00:01<00:02, 17.44it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  45%|████▍     | 30/67 [00:01<00:02, 17.06it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  48%|████▊     | 32/67 [00:01<00:02, 17.33it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  52%|█████▏    | 35/67 [00:02<00:01, 18.37it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  55%|█████▌    | 37/67 [00:02<00:01, 18.34it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  58%|█████▊    | 39/67 [00:02<00:01, 18.03it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  63%|██████▎   | 42/67 [00:02<00:01, 18.77it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  67%|██████▋   | 45/67 [00:02<00:01, 18.82it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  70%|███████   | 47/67 [00:02<00:01, 18.54it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  73%|███████▎  | 49/67 [00:02<00:00, 18.50it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  78%|███████▊  | 52/67 [00:03<00:00, 18.69it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  81%|████████  | 54/67 [00:03<00:00, 18.68it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  84%|████████▎ | 56/67 [00:03<00:00, 18.42it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  87%|████████▋ | 58/67 [00:03<00:00, 18.82it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  91%|█████████ | 61/67 [00:03<00:00, 19.92it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  96%|█████████▌| 64/67 [00:03<00:00, 21.15it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE): 100%|██████████| 67/67 [00:03<00:00, 20.89it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE): 100%|██████████| 67/67 [00:03<00:00, 17.90it/s]
+[1;36m(EngineCore_0 pid=2113604)[0;0m INFO 09-07 23:14:42 [gpu_model_runner.py:2708] Graph capturing finished in 4 secs, took 0.53 GiB
+[1;36m(EngineCore_0 pid=2113604)[0;0m INFO 09-07 23:14:42 [core.py:214] init engine (profile, create kv cache, warmup model) took 35.45 seconds
+[1;36m(EngineCore_0 pid=2113604)[0;0m /miniforge/lib/python3.12/site-packages/vllm/transformers_utils/tokenizer_group.py:26: FutureWarning: It is strongly recommended to run mistral models with `--tokenizer-mode "mistral"` to ensure correct encoding and decoding.
+[1;36m(EngineCore_0 pid=2113604)[0;0m   self.tokenizer = get_tokenizer(self.tokenizer_id, **tokenizer_config)
+INFO 09-07 23:14:44 [llm.py:298] Supported_tasks: ['generate']
+✅ Model mistralai/Mistral-7B-Instruct-v0.2 loaded successfully with vLLM!
+✅ Tokenizer loaded successfully!
+✅ Model already has chat template
+✅ vLLM model is managed internally.
+
+📐 Will process 8 directions:
+  v3: (0.9848, 0.1736) (10°)
+  v4: (0.9659, 0.2588) (15°)
+  v5: (0.9397, 0.342) (20°)
+  v6: (0.9063, 0.4226) (25°)
+  v7: (0.866, 0.5) (30°)
+  v8: (0.8192, 0.5736) (35°)
+  v9: (0.766, 0.6428) (40°)
+  v10: (0.7071, 0.7071) (45°)
+
+🚀 Starting generation for 519 prompts across all directions with vLLM...
+💾 Output directory: /mnt/task_runtime/shiyl_workspace/workspace/ruochen_project/data/helpsteer2/sft/sft_baseline5/Mistral-7B-Instruct-v0.2
+📊 Using batch_size: 16
+
+🎯 Processing direction v3: (0.9848, 0.1736) (10°)
+🔁 Found 519 prompts with records, 519 prompts with sufficient valid responses in v3
+✅ Direction v3 is already complete.
+
+🎯 Processing direction v4: (0.9659, 0.2588) (15°)
+🔁 Found 519 prompts with records, 519 prompts with sufficient valid responses in v4
+✅ Direction v4 is already complete.
+
+🎯 Processing direction v5: (0.9397, 0.342) (20°)
+🔁 Found 519 prompts with records, 519 prompts with sufficient valid responses in v5
+✅ Direction v5 is already complete.
+
+🎯 Processing direction v6: (0.9063, 0.4226) (25°)
+🔁 Found 519 prompts with records, 519 prompts with sufficient valid responses in v6
+✅ Direction v6 is already complete.
+
+🎯 Processing direction v7: (0.866, 0.5) (30°)
+🔁 Found 519 prompts with records, 519 prompts with sufficient valid responses in v7
+✅ Direction v7 is already complete.
+
+🎯 Processing direction v8: (0.8192, 0.5736) (35°)
+🔁 Found 519 prompts with records, 519 prompts with sufficient valid responses in v8
+✅ Direction v8 is already complete.
+
+🎯 Processing direction v9: (0.766, 0.6428) (40°)
+🔁 Found 160 prompts with records, 160 prompts with sufficient valid responses in v9
+📊 v9: 已处理 160 个，剩余 359 个
+Processing v9:   0%|          | 0/23 [00:00<?, ?it/s]
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 595.16it/s]
+
+Processed prompts:   0%|          | 0/80 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v9: Invalid prefix encountered while decoding stream. Token ID: 23605, Expected prefix: '🍿', Actual string: '�������asso'
+Processed prompts:   0%|          | 0/80 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+Processing v9:   4%|▍         | 1/23 [00:00<00:20,  1.07it/s]
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1178.73it/s]
+
+Processed prompts:   0%|          | 0/160 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v9: Invalid prefix encountered while decoding stream. Token ID: 898, Expected prefix: '🍿', Actual string: '�������assofr'
+Processed prompts:   0%|          | 0/160 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1250.07it/s]
+
+Processed prompts:   0%|          | 0/240 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v9: Invalid prefix encountered while decoding stream. Token ID: 377, Expected prefix: '🍿', Actual string: '�������assofrap'
+Processed prompts:   0%|          | 0/240 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+Processing v9:  13%|█▎        | 3/23 [00:01<00:06,  3.30it/s]
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1233.21it/s]
+
+Processed prompts:   0%|          | 0/320 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v9: Invalid prefix encountered while decoding stream. Token ID: 313, Expected prefix: '🍿', Actual string: '�������assofrapid'
+Processed prompts:   0%|          | 0/320 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+Processing v9:  17%|█▋        | 4/23 [00:01<00:04,  4.02it/s]
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1209.56it/s]
+
+Processed prompts:   0%|          | 0/400 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v9: Invalid prefix encountered while decoding stream. Token ID: 15728, Expected prefix: '🍿', Actual string: '�������assofrapid "_'
+Processed prompts:   0%|          | 0/400 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1179.85it/s]
+
+Processed prompts:   0%|          | 0/480 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v9: Invalid prefix encountered while decoding stream. Token ID: 28739, Expected prefix: '🍿', Actual string: '�������assofrapid "_"'
+Processed prompts:   0%|          | 0/480 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+Processing v9:  26%|██▌       | 6/23 [00:01<00:02,  6.61it/s]
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1315.14it/s]
+
+Processed prompts:   0%|          | 0/560 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v9: Invalid prefix encountered while decoding stream. Token ID: 935, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Un'
+Processed prompts:   0%|          | 0/560 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1226.54it/s]
+
+Processed prompts:   0%|          | 0/640 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v9: Invalid prefix encountered while decoding stream. Token ID: 14401, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind'
+Processed prompts:   0%|          | 0/640 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1173.93it/s]
+
+Processed prompts:   0%|          | 0/720 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v9: Invalid prefix encountered while decoding stream. Token ID: 1024, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after'
+Processed prompts:   0%|          | 0/720 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1415.05it/s]
+
+Processed prompts:   0%|          | 0/800 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v9: Invalid prefix encountered while decoding stream. Token ID: 771, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work'
+Processed prompts:   0%|          | 0/800 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+Processing v9:  43%|████▎     | 10/23 [00:01<00:01, 12.22it/s]
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1197.97it/s]
+
+Processed prompts:   0%|          | 0/880 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v9: Invalid prefix encountered while decoding stream. Token ID: 442, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or'
+Processed prompts:   0%|          | 0/880 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1310.85it/s]
+
+Processed prompts:   0%|          | 0/960 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v9: Invalid prefix encountered while decoding stream. Token ID: 2052, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school'
+Processed prompts:   0%|          | 0/960 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1220.65it/s]
+
+Processed prompts:   0%|          | 0/1040 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v9: Invalid prefix encountered while decoding stream. Token ID: 395, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with'
+Processed prompts:   0%|          | 0/1040 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1123.07it/s]
+
+Processed prompts:   0%|          | 0/1120 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v9: Invalid prefix encountered while decoding stream. Token ID: 5824, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with Max'
+Processed prompts:   0%|          | 0/1120 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+Processing v9:  61%|██████    | 14/23 [00:01<00:00, 16.79it/s]
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1103.91it/s]
+
+Processed prompts:   0%|          | 0/1200 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v9: Invalid prefix encountered while decoding stream. Token ID: 3902, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream'
+Processed prompts:   0%|          | 0/1200 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1385.40it/s]
+
+Processed prompts:   0%|          | 0/1280 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v9: Invalid prefix encountered while decoding stream. Token ID: 28742, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream''
+Processed prompts:   0%|          | 0/1280 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 804.19it/s]
+
+Processed prompts:   0%|          | 0/1360 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v9: Invalid prefix encountered while decoding stream. Token ID: 28713, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's'
+Processed prompts:   0%|          | 0/1360 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+Processing v9:  74%|███████▍  | 17/23 [00:01<00:00, 19.59it/s]
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 746.02it/s]
+
+Processed prompts:   0%|          | 0/1440 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v9: Invalid prefix encountered while decoding stream. Token ID: 8326, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget'
+Processed prompts:   0%|          | 0/1440 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 700.71it/s]
+
+Processed prompts:   0%|          | 0/1520 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v9: Invalid prefix encountered while decoding stream. Token ID: 28733, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-'
+Processed prompts:   0%|          | 0/1520 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 798.46it/s]
+
+Processed prompts:   0%|          | 0/1600 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v9: Invalid prefix encountered while decoding stream. Token ID: 18109, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly'
+Processed prompts:   0%|          | 0/1600 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+Processing v9:  87%|████████▋ | 20/23 [00:01<00:00, 22.01it/s]
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 861.56it/s]
+
+Processed prompts:   0%|          | 0/1680 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v9: Invalid prefix encountered while decoding stream. Token ID: 1083, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly sub'
+Processed prompts:   0%|          | 0/1680 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 717.63it/s]
+
+Processed prompts:   0%|          | 0/1760 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v9: Invalid prefix encountered while decoding stream. Token ID: 18673, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions'
+Processed prompts:   0%|          | 0/1760 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/7 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 7/7 [00:00<00:00, 1030.32it/s]
+
+Processed prompts:   0%|          | 0/1795 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v9: Invalid prefix encountered while decoding stream. Token ID: 28808, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions!'
+Processed prompts:   0%|          | 0/1795 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+Processing v9: 100%|██████████| 23/23 [00:02<00:00, 11.34it/s]Processing v9: 100%|██████████| 23/23 [00:02<00:00,  9.74it/s]
+✅ Completed direction v9: 0 responses
+
+🎯 Processing direction v10: (0.7071, 0.7071) (45°)
+📊 v10: 已处理 0 个，剩余 519 个
+Processing v10:   0%|          | 0/33 [00:00<?, ?it/s]
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1305.82it/s]
+
+Processed prompts:   0%|          | 0/1875 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v10: Invalid prefix encountered while decoding stream. Token ID: 422, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions! #'
+Processed prompts:   0%|          | 0/1875 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1204.22it/s]
+
+Processed prompts:   0%|          | 0/1955 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v10: Invalid prefix encountered while decoding stream. Token ID: 5010, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions! #Max'
+Processed prompts:   0%|          | 0/1955 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1262.04it/s]
+
+Processed prompts:   0%|          | 0/2035 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v10: Invalid prefix encountered while decoding stream. Token ID: 3902, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions! #MaxStream'
+Processed prompts:   0%|          | 0/2035 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+Processing v10:   9%|▉         | 3/33 [00:00<00:01, 29.05it/s]
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1236.12it/s]
+
+Processed prompts:   0%|          | 0/2115 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v10: Invalid prefix encountered while decoding stream. Token ID: 422, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions! #MaxStream #'
+Processed prompts:   0%|          | 0/2115 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1068.29it/s]
+
+Processed prompts:   0%|          | 0/2195 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v10: Invalid prefix encountered while decoding stream. Token ID: 25683, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions! #MaxStream #Aff'
+Processed prompts:   0%|          | 0/2195 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 737.61it/s]
+
+Processed prompts:   0%|          | 0/2275 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v10: Invalid prefix encountered while decoding stream. Token ID: 556, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions! #MaxStream #Afford'
+Processed prompts:   0%|          | 0/2275 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+Processing v10:  18%|█▊        | 6/33 [00:00<00:00, 28.57it/s]
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 721.75it/s]
+
+Processed prompts:   0%|          | 0/2355 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v10: Invalid prefix encountered while decoding stream. Token ID: 522, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions! #MaxStream #Affordable'
+Processed prompts:   0%|          | 0/2355 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 780.84it/s]
+
+Processed prompts:   0%|          | 0/2435 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v10: Invalid prefix encountered while decoding stream. Token ID: 12403, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions! #MaxStream #AffordableEnter'
+Processed prompts:   0%|          | 0/2435 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 823.99it/s]
+
+Processed prompts:   0%|          | 0/2515 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v10: Invalid prefix encountered while decoding stream. Token ID: 19019, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions! #MaxStream #AffordableEntertainment'
+Processed prompts:   0%|          | 0/2515 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+Processing v10:  27%|██▋       | 9/33 [00:00<00:00, 25.93it/s]
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 745.02it/s]
+
+Processed prompts:   0%|          | 0/2595 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v10: Invalid prefix encountered while decoding stream. Token ID: 422, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions! #MaxStream #AffordableEntertainment #'
+Processed prompts:   0%|          | 0/2595 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 764.44it/s]
+
+Processed prompts:   0%|          | 0/2675 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v10: Invalid prefix encountered while decoding stream. Token ID: 1976, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions! #MaxStream #AffordableEntertainment #You'
+Processed prompts:   0%|          | 0/2675 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1267.83it/s]
+
+Processed prompts:   0%|          | 0/2755 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v10: Invalid prefix encountered while decoding stream. Token ID: 817, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions! #MaxStream #AffordableEntertainment #Young'
+Processed prompts:   0%|          | 0/2755 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+Processing v10:  36%|███▋      | 12/33 [00:00<00:00, 25.40it/s]
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1256.53it/s]
+
+Processed prompts:   0%|          | 0/2835 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v10: Invalid prefix encountered while decoding stream. Token ID: 3261, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions! #MaxStream #AffordableEntertainment #YoungAd'
+Processed prompts:   0%|          | 0/2835 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1169.82it/s]
+
+Processed prompts:   0%|          | 0/2915 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v10: Invalid prefix encountered while decoding stream. Token ID: 517, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions! #MaxStream #AffordableEntertainment #YoungAdult'
+Processed prompts:   0%|          | 0/2915 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1292.15it/s]
+
+Processed prompts:   0%|          | 0/2995 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v10: Invalid prefix encountered while decoding stream. Token ID: 28713, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions! #MaxStream #AffordableEntertainment #YoungAdults'
+Processed prompts:   0%|          | 0/2995 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+Processing v10:  45%|████▌     | 15/33 [00:00<00:00, 24.88it/s]
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1224.39it/s]
+
+Processed prompts:   0%|          | 0/3075 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v10: Invalid prefix encountered while decoding stream. Token ID: 422, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions! #MaxStream #AffordableEntertainment #YoungAdults #'
+Processed prompts:   0%|          | 0/3075 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1298.70it/s]
+
+Processed prompts:   0%|          | 0/3155 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v10: Invalid prefix encountered while decoding stream. Token ID: 2185, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions! #MaxStream #AffordableEntertainment #YoungAdults #OT'
+Processed prompts:   0%|          | 0/3155 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1303.11it/s]
+
+Processed prompts:   0%|          | 0/3235 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v10: Invalid prefix encountered while decoding stream. Token ID: 28738, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions! #MaxStream #AffordableEntertainment #YoungAdults #OTT'
+Processed prompts:   0%|          | 0/3235 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+Processing v10:  55%|█████▍    | 18/33 [00:00<00:00, 26.01it/s]
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1188.59it/s]
+
+Processed prompts:   0%|          | 0/3315 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v10: Invalid prefix encountered while decoding stream. Token ID: 11842, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions! #MaxStream #AffordableEntertainment #YoungAdults #OTTPlatform'
+Processed prompts:   0%|          | 0/3315 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1413.09it/s]
+
+Processed prompts:   0%|          | 0/3395 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v10: Invalid prefix encountered while decoding stream. Token ID: 28756, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions! #MaxStream #AffordableEntertainment #YoungAdults #OTTPlatform\'
+Processed prompts:   0%|          | 0/3395 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1231.90it/s]
+
+Processed prompts:   0%|          | 0/3475 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v10: Invalid prefix encountered while decoding stream. Token ID: 28711, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions! #MaxStream #AffordableEntertainment #YoungAdults #OTTPlatform\n'
+Processed prompts:   0%|          | 0/3475 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+Processing v10:  64%|██████▎   | 21/33 [00:00<00:00, 25.24it/s]
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1281.14it/s]
+
+Processed prompts:   0%|          | 0/3555 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v10: Invalid prefix encountered while decoding stream. Token ID: 7638, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions! #MaxStream #AffordableEntertainment #YoungAdults #OTTPlatform\nWhy'
+Processed prompts:   0%|          | 0/3555 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1231.51it/s]
+
+Processed prompts:   0%|          | 0/3635 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v10: Invalid prefix encountered while decoding stream. Token ID: 28747, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions! #MaxStream #AffordableEntertainment #YoungAdults #OTTPlatform\nWhy:'
+Processed prompts:   0%|          | 0/3635 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1306.13it/s]
+
+Processed prompts:   0%|          | 0/3715 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v10: Invalid prefix encountered while decoding stream. Token ID: 9465, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions! #MaxStream #AffordableEntertainment #YoungAdults #OTTPlatform\nWhy: Young'
+Processed prompts:   0%|          | 0/3715 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+Processing v10:  73%|███████▎  | 24/33 [00:00<00:00, 24.60it/s]
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1123.14it/s]
+
+Processed prompts:   0%|          | 0/3795 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v10: Invalid prefix encountered while decoding stream. Token ID: 12111, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions! #MaxStream #AffordableEntertainment #YoungAdults #OTTPlatform\nWhy: Young adults'
+Processed prompts:   0%|          | 0/3795 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 1389.85it/s]
+
+Processed prompts:   0%|          | 0/3875 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v10: Invalid prefix encountered while decoding stream. Token ID: 17859, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions! #MaxStream #AffordableEntertainment #YoungAdults #OTTPlatform\nWhy: Young adults aged'
+Processed prompts:   0%|          | 0/3875 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 809.31it/s]
+
+Processed prompts:   0%|          | 0/3955 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v10: Invalid prefix encountered while decoding stream. Token ID: 28705, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions! #MaxStream #AffordableEntertainment #YoungAdults #OTTPlatform\nWhy: Young adults aged '
+Processed prompts:   0%|          | 0/3955 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+Processing v10:  82%|████████▏ | 27/33 [00:01<00:00, 25.51it/s]
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 751.38it/s]
+
+Processed prompts:   0%|          | 0/4035 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v10: Invalid prefix encountered while decoding stream. Token ID: 28740, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions! #MaxStream #AffordableEntertainment #YoungAdults #OTTPlatform\nWhy: Young adults aged 1'
+Processed prompts:   0%|          | 0/4035 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 701.88it/s]
+
+Processed prompts:   0%|          | 0/4115 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v10: Invalid prefix encountered while decoding stream. Token ID: 28783, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions! #MaxStream #AffordableEntertainment #YoungAdults #OTTPlatform\nWhy: Young adults aged 18'
+Processed prompts:   0%|          | 0/4115 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 809.30it/s]
+
+Processed prompts:   0%|          | 0/4195 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v10: Invalid prefix encountered while decoding stream. Token ID: 28733, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions! #MaxStream #AffordableEntertainment #YoungAdults #OTTPlatform\nWhy: Young adults aged 18-'
+Processed prompts:   0%|          | 0/4195 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+Processing v10:  91%|█████████ | 30/33 [00:01<00:00, 26.40it/s]
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 869.48it/s]
+
+Processed prompts:   0%|          | 0/4275 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v10: Invalid prefix encountered while decoding stream. Token ID: 28770, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions! #MaxStream #AffordableEntertainment #YoungAdults #OTTPlatform\nWhy: Young adults aged 18-3'
+Processed prompts:   0%|          | 0/4275 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/16 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 16/16 [00:00<00:00, 757.48it/s]
+
+Processed prompts:   0%|          | 0/4355 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v10: Invalid prefix encountered while decoding stream. Token ID: 28734, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions! #MaxStream #AffordableEntertainment #YoungAdults #OTTPlatform\nWhy: Young adults aged 18-30'
+Processed prompts:   0%|          | 0/4355 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+
+Adding requests:   0%|          | 0/7 [00:00<?, ?it/s][AAdding requests: 100%|██████████| 7/7 [00:00<00:00, 1038.82it/s]
+
+Processed prompts:   0%|          | 0/4390 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A⚠️ Error generating responses for direction v10: Invalid prefix encountered while decoding stream. Token ID: 28725, Expected prefix: '🍿', Actual string: '�������assofrapid "_" Unwind after work or school with MaxStream's budget-friendly subscriptions! #MaxStream #AffordableEntertainment #YoungAdults #OTTPlatform\nWhy: Young adults aged 18-30,'
+Processed prompts:   0%|          | 0/4390 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+Processing v10: 100%|██████████| 33/33 [00:01<00:00, 26.79it/s]Processing v10: 100%|██████████| 33/33 [00:01<00:00, 26.07it/s]
+✅ Completed direction v10: 0 responses
+
+🏁 All directions completed in 4.1 seconds
+📊 Total responses generated: 0
+
+✅ All done! Results saved to /mnt/task_runtime/shiyl_workspace/workspace/ruochen_project/data/helpsteer2/sft/sft_baseline5/Mistral-7B-Instruct-v0.2
+
+📁 Results files:
+  📄 v3: 5446.9 KB
+  📄 v4: 5446.3 KB
+  📄 v5: 5441.9 KB
+  📄 v6: 5457.7 KB
+  📄 v7: 5469.5 KB
+  📄 v8: 5475.4 KB
+  📄 v9: 1774.8 KB
+
+📈 Final statistics:
+  v3: 2595 responses generated
+  v4: 2595 responses generated
+  v5: 2595 responses generated
+  v6: 2595 responses generated
+  v7: 2595 responses generated
+  v8: 2595 responses generated
+  v9: 800 responses generated
+
+💡 Results are saved to: /mnt/task_runtime/shiyl_workspace/workspace/ruochen_project/data/helpsteer2/sft/sft_baseline5/Mistral-7B-Instruct-v0.2
+💡 You can find CSV files for each direction in the output directory
+[rank0]:[W907 23:14:50.246572825 ProcessGroupNCCL.cpp:1479] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())
